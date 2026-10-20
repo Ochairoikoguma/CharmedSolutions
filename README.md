@@ -1,4 +1,4 @@
-# CIS-4375-Project
+# Charmed Solutions
 
 ## Development setup
 
