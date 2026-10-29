@@ -17,8 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounting.views import home
+from accounting.views import sample_remittance_download
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
+        path(
+        "reports/sample/download/",
+        sample_remittance_download,
+        name="sample_remittance_download",),
 ]
