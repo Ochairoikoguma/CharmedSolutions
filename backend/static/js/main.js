@@ -1,94 +1,105 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const messageBox = document.getElementById("messageBox");
-    const rolloverSelectedBtn = document.getElementById("rolloverSelectedBtn");
-    const rolloverAllBtn = document.getElementById("rolloverAllBtn");
-    const generateReportsBtn = document.getElementById("generateReportsBtn");
+const messageBox = document.getElementById("messageBox");
 
-    let messageTimer = null;
-    let reportTimer = null;
+const selectAll = document.getElementById("selectAll");
+
+const checkboxes =
+    document.querySelectorAll(".client-checkbox");
 
 
-    if (messageBox) {
-        messageBox.setAttribute("role", "status");
-        messageBox.setAttribute("aria-live", "polite");
-    }
+function showMessage(message, type) {
 
-    function showMessage(message, type = "success") {
-        if (!messageBox) return;
+    messageBox.textContent = message;
 
-       
-        clearTimeout(messageTimer);
+    messageBox.className =
+        "message message-" + type;
 
-        messageBox.textContent = message;
-        messageBox.className = `message message-${type}`;
 
-        // Loading messages stay visible until replaced
-        if (type !== "loading") {
-            messageTimer = setTimeout(() => {
-                messageBox.classList.add("hidden");
-            }, 3000);
+    setTimeout(function () {
+
+        messageBox.classList.add("hidden");
+
+    }, 3000);
+
+}
+
+
+if (selectAll) {
+
+    selectAll.addEventListener("change", function () {
+
+        checkboxes.forEach(function (checkbox) {
+
+            checkbox.checked =
+                selectAll.checked;
+
+        });
+
+    });
+
+}
+
+
+document
+    .getElementById("importBtn")
+    .addEventListener("click", function () {
+
+        showMessage(
+            "Import selected.",
+            "loading"
+        );
+
+    });
+
+
+document
+    .getElementById("rolloverSelectedBtn")
+    .addEventListener("click", function () {
+
+        const selected =
+            document.querySelectorAll(
+                ".client-checkbox:checked"
+            );
+
+
+        if (selected.length === 0) {
+
+            showMessage(
+                "Select at least one client.",
+                "error"
+            );
+
+            return;
+
         }
-    }
 
-    function getClientCheckboxes() {
-        return document.querySelectorAll(".client-checkbox");
-    }
 
-    function getSelectedClients() {
-        return Array.from(
-            document.querySelectorAll(".client-checkbox:checked")
-        ).map(checkbox => checkbox.value);
-    }
+        showMessage(
+            "Selected clients rolled over successfully.",
+            "success"
+        );
 
-    if (rolloverSelectedBtn) {
-        rolloverSelectedBtn.addEventListener("click", () => {
-            const selected = getSelectedClients();
+    });
 
-            if (selected.length === 0) {
-                showMessage("Please select at least one client.", "error");
-                return;
-            }
 
-            showMessage(
-                `${selected.length} client(s) selected for rollover.`,
-                "success"
-            );
-        });
-    }
+document
+    .getElementById("rolloverAllBtn")
+    .addEventListener("click", function () {
 
-    if (rolloverAllBtn) {
-        rolloverAllBtn.addEventListener("click", () => {
-            const checkboxes = getClientCheckboxes();
+        showMessage(
+            "All flagged clients rolled over successfully.",
+            "success"
+        );
 
-            if (checkboxes.length === 0) {
-                showMessage("There are no flagged clients to roll over.", "error");
-                return;
-            }
+    });
 
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-            });
 
-            showMessage(
-                `All ${checkboxes.length} flagged client(s) selected for rollover.`,
-                "success"
-            );
-        });
-    }
+document
+    .getElementById("generateReportsBtn")
+    .addEventListener("click", function () {
 
-    if (generateReportsBtn) {
-        generateReportsBtn.addEventListener("click", () => {
-            // Prevent double-clicks from starting overlapping runs
-            if (generateReportsBtn.disabled) return;
+        showMessage(
+            "Reports generated successfully.",
+            "success"
+        );
 
-            generateReportsBtn.disabled = true;
-            showMessage("Generating reports...", "loading");
-
-            clearTimeout(reportTimer);
-            reportTimer = setTimeout(() => {
-                showMessage("Reports generated successfully.", "success");
-                generateReportsBtn.disabled = false;
-            }, 1000);
-        });
-    }
-});
+    });

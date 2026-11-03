@@ -1,17 +1,250 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Regent & Associates</title>
+
+    <title>Regent & Associates Dashboard</title>
+
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <script src="{% static 'js/main.js' %}" defer>
-    </script>
+    <script src="{% static 'js/main.js' %}" defer></script>
 </head>
+
 <body>
-    <h1>Regent & Associates</h1>
-    <p>Remittance and Reporting Application</p>
-    <p>Project setup is working.</p>
+
+<header class="site-header">
+    <div>
+        <h1>Regent & Associates</h1>
+        <p>Remittance and Reporting Application</p>
+    </div>
+
+    <a href="/client/" class="nav-link">View Clients</a>
+</header>
+
+
+<main class="page-container">
+
+    <section class="dashboard-heading">
+
+        <div>
+            <h2>Dashboard</h2>
+
+            <div class="period-row">
+                <strong>Reporting Period:</strong>
+
+                <select id="reportingPeriod">
+                    <option>October 2026</option>
+                    <option>September 2026</option>
+                    <option>August 2026</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="importBtn" class="btn btn-green">
+            Import
+        </button>
+
+    </section>
+
+
+    <div id="messageBox" class="message hidden"></div>
+
+
+    <section class="dashboard-panel">
+
+        <table class="dashboard-table">
+
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" id="selectAll">
+                    </th>
+
+                    <th>Client</th>
+                    <th>Collections</th>
+                    <th>Costs</th>
+                    <th>Commission</th>
+                    <th>Net Remittance</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="client-checkbox"
+                            value="1"
+                        >
+                    </td>
+
+                    <td>
+                        <a href="/client/" class="client-link">
+                            Client 1
+                        </a>
+                    </td>
+
+                    <td>$5,000.00</td>
+                    <td>$750.00</td>
+                    <td>$1,000.00</td>
+                    <td>$3,250.00</td>
+
+                    <td>
+                        <span class="status status-good">
+                            Ready
+                        </span>
+                    </td>
+                </tr>
+
+
+                <tr class="flagged-row">
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="client-checkbox"
+                            value="2"
+                        >
+                    </td>
+
+                    <td>
+                        <a href="/client/" class="client-link">
+                            Client 2
+                        </a>
+                    </td>
+
+                    <td>$4,000.00</td>
+                    <td>$1,100.00</td>
+                    <td>$800.00</td>
+                    <td>$2,100.00</td>
+
+                    <td>
+                        <span class="status status-warning">
+                            Cost Limit
+                        </span>
+                    </td>
+                </tr>
+
+
+                <tr>
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="client-checkbox"
+                            value="3"
+                        >
+                    </td>
+
+                    <td>
+                        <a href="/client/" class="client-link">
+                            Client 3
+                        </a>
+                    </td>
+
+                    <td>$8,500.00</td>
+                    <td>$900.00</td>
+                    <td>$1,700.00</td>
+                    <td>$5,900.00</td>
+
+                    <td>
+                        <span class="status status-good">
+                            Ready
+                        </span>
+                    </td>
+                </tr>
+
+
+                <tr class="flagged-row">
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="client-checkbox"
+                            value="4"
+                        >
+                    </td>
+
+                    <td>
+                        <a href="/client/" class="client-link">
+                            Client 4
+                        </a>
+                    </td>
+
+                    <td>$3,000.00</td>
+                    <td>$800.00</td>
+                    <td>$600.00</td>
+                    <td>$1,600.00</td>
+
+                    <td>
+                        <span class="status status-warning">
+                            Cost Limit
+                        </span>
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+
+    <section class="dashboard-actions">
+
+        <div class="left-actions">
+
+            <button
+                id="rolloverSelectedBtn"
+                class="btn btn-navy"
+            >
+                Rollover Selected
+            </button>
+
+            <button
+                id="rolloverAllBtn"
+                class="btn btn-outline"
+            >
+                Rollover All Flagged
+            </button>
+
+        </div>
+
+
+        <div class="right-actions">
+
+            <span class="client-count">
+                4 Clients
+            </span>
+
+            <button
+                id="generateReportsBtn"
+                class="btn btn-green"
+            >
+                Generate Reports
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <section class="dashboard-note">
+
+        <h3>Cost Limit Review</h3>
+
+        <p>
+            Clients highlighted above have costs that exceed their
+            allowable percentage of monthly collections and may
+            require rollover.
+        </p>
+
+    </section>
+
+</main>
+
 </body>
+
 </html>
