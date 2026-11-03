@@ -1,12 +1,38 @@
-const messageBox = document.getElementById("messageBox");
+/* =====================================
+   DASHBOARD ELEMENTS
+   ===================================== */
 
-const selectAll = document.getElementById("selectAll");
+const messageBox =
+    document.getElementById("messageBox");
 
-const checkboxes =
+const selectAll =
+    document.getElementById("selectAll");
+
+const clientCheckboxes =
     document.querySelectorAll(".client-checkbox");
 
+const importBtn =
+    document.getElementById("importBtn");
+
+const rolloverSelectedBtn =
+    document.getElementById("rolloverSelectedBtn");
+
+const rolloverAllBtn =
+    document.getElementById("rolloverAllBtn");
+
+const generateReportsBtn =
+    document.getElementById("generateReportsBtn");
+
+
+/* =====================================
+   FEEDBACK MESSAGE
+   ===================================== */
 
 function showMessage(message, type) {
+
+    if (!messageBox) {
+        return;
+    }
 
     messageBox.textContent = message;
 
@@ -23,83 +49,134 @@ function showMessage(message, type) {
 }
 
 
+/* =====================================
+   SELECT ALL CLIENTS
+   ===================================== */
+
 if (selectAll) {
 
-    selectAll.addEventListener("change", function () {
+    selectAll.addEventListener(
+        "change",
+        function () {
 
-        checkboxes.forEach(function (checkbox) {
+            clientCheckboxes.forEach(
+                function (checkbox) {
 
-            checkbox.checked =
-                selectAll.checked;
+                    checkbox.checked =
+                        selectAll.checked;
 
-        });
+                }
+            );
 
-    });
+        }
+    );
 
 }
 
 
-document
-    .getElementById("importBtn")
-    .addEventListener("click", function () {
+/* =====================================
+   IMPORT BUTTON
+   ===================================== */
 
-        showMessage(
-            "Import selected.",
-            "loading"
-        );
+if (importBtn) {
 
-    });
-
-
-document
-    .getElementById("rolloverSelectedBtn")
-    .addEventListener("click", function () {
-
-        const selected =
-            document.querySelectorAll(
-                ".client-checkbox:checked"
-            );
-
-
-        if (selected.length === 0) {
+    importBtn.addEventListener(
+        "click",
+        function () {
 
             showMessage(
-                "Select at least one client.",
-                "error"
+                "Import selected.",
+                "loading"
             );
 
-            return;
+        }
+    );
+
+}
+
+
+/* =====================================
+   ROLLOVER SELECTED
+   ===================================== */
+
+if (rolloverSelectedBtn) {
+
+    rolloverSelectedBtn.addEventListener(
+        "click",
+        function () {
+
+            const selectedClients =
+                document.querySelectorAll(
+                    ".client-checkbox:checked"
+                );
+
+
+            if (selectedClients.length === 0) {
+
+                showMessage(
+                    "Please select at least one client.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            showMessage(
+                selectedClients.length +
+                " client(s) selected for rollover.",
+                "success"
+            );
 
         }
+    );
+
+}
 
 
-        showMessage(
-            "Selected clients rolled over successfully.",
-            "success"
-        );
+/* =====================================
+   ROLLOVER ALL FLAGGED
+   ===================================== */
 
-    });
+if (rolloverAllBtn) {
+
+    rolloverAllBtn.addEventListener(
+        "click",
+        function () {
+
+            showMessage(
+                "All flagged clients selected for rollover.",
+                "success"
+            );
+
+        }
+    );
+
+}
 
 
-document
-    .getElementById("rolloverAllBtn")
-    .addEventListener("click", function () {
+/* =====================================
+   GENERATE / DOWNLOAD REPORT
+   ===================================== */
 
-        showMessage(
-            "All flagged clients rolled over successfully.",
-            "success"
-        );
+if (generateReportsBtn) {
 
-    });
+    generateReportsBtn.addEventListener(
+        "click",
+        function () {
 
+            /*
+             * The backend already provides
+             * the sample PDF download route.
+             *
+             * Clicking Generate Reports
+             * sends the browser to that URL.
+             */
 
-document
-    .getElementById("generateReportsBtn")
-    .addEventListener("click", function () {
+            window.location.href =
+                "/reports/sample/download/";
 
-        showMessage(
-            "Reports generated successfully.",
-            "success"
-        );
+        }
+    );
 
-    });
+}
