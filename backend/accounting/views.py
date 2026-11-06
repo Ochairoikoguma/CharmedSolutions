@@ -3,6 +3,9 @@ from datetime import date
 from decimal import Decimal
 from django.http import HttpResponse
 from .services.reports import generate_remittance_pdf
+from django.views.decorators.http import require_POST
+from .models import Client
+from .services.remittance import save_remittance_report
 
 
 def home(request):
@@ -79,3 +82,47 @@ def sample_remittance_download(request):
     return response
 
 # Create your views here!
+
+@require_POST
+def remittance_download(request, client_id):
+    #Generate, save, and download a clients monthly report
+
+    # Read the reporting year and month submitted by the frontend
+    try:
+        year = int(request.POST.get("year", ""))
+        month = int(request.POST.get("month", ""))
+
+        # validate the reporting period before generating the report
+        #December needs a following January for the date filter
+        if not 1 <= year <= 9998:
+            raise ValueError("Invalid year.")
+
+        date(year, month, 1)
+
+    except (TypeError, ValueError):
+        return HttpResponse(
+            "Provide a valid reporting year and month.",
+            status=400,
+            content_type="text/plain",
+        )
+
+    #save the Pdf and totalsand mark its included costs as billed
+    try:
+        report = save_remittance_report(client_id, year, month)
+
+    except Client.DoesNotExist:
+        return HttpResponse("The selected client was not found.",status=404,content_type="text/plain",)
+
+    except ValueError as error:
+        #show the services explanation
+        # rate or an existing report for this client and month
+        return HttpResponse(str(error),status=400,content_type="text/plain",)
+
+    #return the saved PDF as a browser download
+    response = HttpResponse(bytes(report.pdf_file),content_type="application/pdf",)
+
+    #Useclient ID and reporting period for filename
+    filename = f"remittance_{client_id}_{year:04d}_{month:02d}.pdf"
+    response["Content-Disposition"] = (f'attachment; filename="{filename}"')
+
+    return response
