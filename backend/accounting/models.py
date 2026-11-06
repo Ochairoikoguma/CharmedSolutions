@@ -96,6 +96,8 @@ class Remittance(models.Model):
 
     #store the amounts supplied by calculation service
     gross_recoveries = models.DecimalField(max_digits=12, decimal_places=2, db_column="GrossRecoveries")
+    #store costs deducted in this months report
+    total_cost=models.DecimalField(max_digits=12,decimal_places=2,db_column="TotalCost",)
     #save the rate used for this report
     commission_rate=models.DecimalField(max_digits=4, decimal_places=2, db_column="CommissionRate")
     total_commission= models.DecimalField(max_digits=12, decimal_places=2, db_column="TotalCommission")
