@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-
 def calculate_cost_ceiling(total_recoveries, max_percentage=20):
     """Calculate the maximum costs allowed for the month."""
 
@@ -48,4 +47,42 @@ def calculate_billable_costs(costs, ceiling):
         "total_billed": total_billed,
         "billed_costs": billed_costs,
         "rollover_costs": rollover_costs
+    }
+
+    
+def calculate_monthly_remittance(
+    gross_recoveries,
+    applied_costs,
+    commission_rate
+):
+    """
+    Calculate a client's monthly remittance.
+
+    commission_rate is a percentage:
+    20 means 20%.
+    """
+
+    gross = Decimal(str(gross_recoveries))
+    costs = Decimal(str(applied_costs))
+    rate = Decimal(str(commission_rate))
+
+    if gross < 0:
+        raise ValueError("Gross recoveries cannot be negative.")
+
+    if costs < 0:
+        raise ValueError("Applied costs cannot be negative.")
+
+    if not 0 <= rate <= 100:
+        raise ValueError("Commission rate must be 0 to 100.")
+
+    net_recoveries = gross - costs
+    commission = gross * rate / Decimal("100")
+    net_remittance = net_recoveries - commission
+
+    return {
+        "gross_recoveries": gross,
+        "applied_costs": costs,
+        "net_recoveries": net_recoveries,
+        "commission": commission,
+        "net_remittance": net_remittance,
     }

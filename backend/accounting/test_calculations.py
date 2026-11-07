@@ -5,7 +5,7 @@ from accounting.services.calculations import (
     calculate_billable_costs
 )
 from accounting.services.rollovers import prepare_rollover
-
+from accounting.services.calculations import calculate_monthly_remittance
 costs = [
     {
         "CostID": 1,
@@ -43,3 +43,23 @@ print("Cost ceiling:", ceiling)
 print("Total billed:", proposal["total_billed"])
 print("Rollover updates:", updates)
 print("All tests passed!")
+
+
+
+def test_monthly_remittance():
+    result = calculate_monthly_remittance(
+        gross_recoveries=10000,
+        applied_costs=1500,
+        commission_rate=20
+    )
+
+    assert result["gross_recoveries"] == Decimal("10000")
+    assert result["applied_costs"] == Decimal("1500")
+    assert result["net_recoveries"] == Decimal("8500")
+    assert result["commission"] == Decimal("2000")
+    assert result["net_remittance"] == Decimal("6500")
+
+    print("Monthly remittance test passed!")
+
+
+test_monthly_remittance()
