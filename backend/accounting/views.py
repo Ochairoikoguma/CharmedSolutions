@@ -6,6 +6,9 @@ from .services.reports import generate_remittance_pdf
 from django.views.decorators.http import require_POST
 from .models import Client
 from .services.remittance import save_remittance_report
+from django.shortcuts import render, get_object_or_404
+from django.views.decorators.http import require_POST, require_GET
+from .models import Client, Remittance
 
 
 def home(request):
@@ -125,4 +128,27 @@ def remittance_download(request, client_id):
     filename = f"remittance_{client_id}_{year:04d}_{month:02d}.pdf"
     response["Content-Disposition"] = (f'attachment; filename="{filename}"')
 
+    return response
+
+@require_GET
+def saved_remittance_download(request, report_id):
+    """Download the original PDF stored for an existing report."""
+
+
+
+    #find saved report by ID
+    # if report does not exit return 404
+    report = get_object_or_404(Remittance, pk=report_id)
+
+    #if records exist without a pdf
+    if not report.pdf_file:
+        return HttpResponse("This report does not have a saved PDF.",status=404,content_type="text/plain",)
+
+
+    
+    response = HttpResponse(bytes(report.pdf_file),content_type="application/pdf",)
+
+    
+    filename = (f"remittance_{report.client_id}_"f"{report.report_period:%Y_%m}.pdf")
+    response["Content-Disposition"] = (f'attachment; filename="{filename}"')
     return response
