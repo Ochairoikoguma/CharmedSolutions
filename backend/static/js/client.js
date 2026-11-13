@@ -1,123 +1,136 @@
-/* =====================================
-   CLIENT PAGE ELEMENTS
-   ===================================== */
+/* =========================================
+   CLIENT DATA
 
-const clientMessage =
-    document.getElementById("clientMessage");
-
-const clientButtons =
-    document.querySelectorAll(".client-name");
-
-const clientForm =
-    document.getElementById("clientForm");
-
-const clientName =
-    document.getElementById("clientName");
-
-const commissionRate =
-    document.getElementById("commissionRate");
-
-const costLimit =
-    document.getElementById("costLimit");
-
-const deleteClientBtn =
-    document.getElementById("deleteClientBtn");
-
-const createClientBtn =
-    document.getElementById("createClientBtn");
-
-const clientReportBtn =
-    document.getElementById("clientReportBtn");
-
-
-/* =====================================
-   FAKE CLIENT DATA
-   ===================================== */
+   Temporary frontend data until
+   Django supplies real database clients.
+   ========================================= */
 
 const clients = {
 
     1: {
-        name: "Client 1",
+        id: 1,
+        name: "Alpha Funding",
         commissionRate: 20,
-        costLimit: 20
+        dateAdded: "10/01/2026"
     },
 
     2: {
-        name: "Client 2",
+        id: 2,
+        name: "Capital Advance",
         commissionRate: 25,
-        costLimit: 15
+        dateAdded: "10/05/2026"
     },
 
     3: {
-        name: "Client 3",
-        commissionRate: 20,
-        costLimit: 20
+        id: 3,
+        name: "Merchant Funding",
+        commissionRate: 18,
+        dateAdded: "10/12/2026"
     },
 
     4: {
-        name: "Client 4",
-        commissionRate: 18,
-        costLimit: 15
+        id: 4,
+        name: "Premier Capital",
+        commissionRate: 20,
+        dateAdded: "10/18/2026"
     }
 
 };
 
 
-/* =====================================
-   CURRENT CLIENT
-   ===================================== */
+/* =========================================
+   ELEMENTS
+   ========================================= */
+
+const clientMessage =
+    document.getElementById(
+        "clientMessage"
+    );
+
+const clientButtons =
+    document.querySelectorAll(
+        ".client-name"
+    );
+
+const clientForm =
+    document.getElementById(
+        "clientForm"
+    );
+
+const clientId =
+    document.getElementById(
+        "clientId"
+    );
+
+const clientName =
+    document.getElementById(
+        "clientName"
+    );
+
+const commissionRate =
+    document.getElementById(
+        "commissionRate"
+    );
+
+const dateAdded =
+    document.getElementById(
+        "dateAdded"
+    );
+
+const createClientBtn =
+    document.getElementById(
+        "createClientBtn"
+    );
+
+const deleteClientBtn =
+    document.getElementById(
+        "deleteClientBtn"
+    );
+
 
 let selectedClientId = 1;
 
 
-/* =====================================
-   FEEDBACK MESSAGE
-   ===================================== */
+/* =========================================
+   MESSAGES
+   ========================================= */
 
-function showClientMessage(message, type) {
+function showClientMessage(
+    message,
+    type
+) {
 
-    if (!clientMessage) {
-        return;
-    }
-
-    clientMessage.textContent = message;
+    clientMessage.textContent =
+        message;
 
     clientMessage.className =
-        "message message-" + type;
-
-
-    setTimeout(function () {
-
-        clientMessage.classList.add("hidden");
-
-    }, 3000);
+        "message message-" +
+        type;
 
 }
 
 
-/* =====================================
+/* =========================================
    LOAD CLIENT
-   ===================================== */
+   ========================================= */
 
-function loadClient(clientId) {
+function loadClient(id) {
 
-    const client = clients[clientId];
+    const client =
+        clients[id];
 
 
     if (!client) {
-
-        showClientMessage(
-            "Client could not be found.",
-            "error"
-        );
-
         return;
     }
 
 
     selectedClientId =
-        Number(clientId);
+        Number(id);
 
+
+    clientId.value =
+        client.id;
 
     clientName.value =
         client.name;
@@ -125,22 +138,28 @@ function loadClient(clientId) {
     commissionRate.value =
         client.commissionRate;
 
-    costLimit.value =
-        client.costLimit;
+    dateAdded.value =
+        client.dateAdded;
 
 
     clientButtons.forEach(
         function (button) {
 
-            button.classList.remove("active");
+            button.classList.remove(
+                "active"
+            );
 
 
             if (
-                Number(button.dataset.client) ===
+                Number(
+                    button.dataset.client
+                ) ===
                 selectedClientId
             ) {
 
-                button.classList.add("active");
+                button.classList.add(
+                    "active"
+                );
 
             }
 
@@ -150,9 +169,9 @@ function loadClient(clientId) {
 }
 
 
-/* =====================================
+/* =========================================
    SELECT CLIENT
-   ===================================== */
+   ========================================= */
 
 clientButtons.forEach(
     function (button) {
@@ -161,19 +180,10 @@ clientButtons.forEach(
             "click",
             function () {
 
-                const clientId =
+                loadClient(
                     Number(
                         button.dataset.client
-                    );
-
-
-                loadClient(clientId);
-
-
-                showClientMessage(
-                    clients[clientId].name +
-                    " selected.",
-                    "success"
+                    )
                 );
 
             }
@@ -183,229 +193,68 @@ clientButtons.forEach(
 );
 
 
-/* =====================================
-   SAVE CLIENT
-   ===================================== */
+/* =========================================
+   SAVE CLIENT DETAILS
+   ========================================= */
 
-if (clientForm) {
+clientForm.addEventListener(
+    "submit",
+    function (event) {
 
-    clientForm.addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
+        event.preventDefault();
 
 
-            const name =
-                clientName.value.trim();
-
-            const commission =
-                Number(
-                    commissionRate.value
-                );
-
-            const limit =
-                Number(
-                    costLimit.value
-                );
+        const name =
+            clientName.value.trim();
 
 
-            /* NAME VALIDATION */
-
-            if (name === "") {
-
-                showClientMessage(
-                    "Client name is required.",
-                    "error"
-                );
-
-                return;
-
-            }
+        const commission =
+            commissionRate.value.trim();
 
 
-            /* COMMISSION VALIDATION */
-
-            if (
-                commissionRate.value === "" ||
-                commission < 0 ||
-                commission > 100
-            ) {
-
-                showClientMessage(
-                    "Commission percentage must be between 0 and 100.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            /* COST LIMIT VALIDATION */
-
-            if (
-                costLimit.value === "" ||
-                limit < 0 ||
-                limit > 100
-            ) {
-
-                showClientMessage(
-                    "Cost limit must be between 0 and 100.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            /* UPDATE FAKE DATA */
-
-            if (
-                selectedClientId !== null &&
-                clients[selectedClientId]
-            ) {
-
-                clients[selectedClientId].name =
-                    name;
-
-                clients[selectedClientId].commissionRate =
-                    commission;
-
-                clients[selectedClientId].costLimit =
-                    limit;
-
-
-                const activeButton =
-                    document.querySelector(
-                        '.client-name[data-client="' +
-                        selectedClientId +
-                        '"]'
-                    );
-
-
-                if (activeButton) {
-
-                    activeButton.textContent =
-                        name;
-
-                }
-
-            }
-
+        if (name === "") {
 
             showClientMessage(
-                "Client information saved successfully.",
-                "success"
+                "Client name is required.",
+                "error"
             );
+
+            return;
 
         }
-    );
-
-}
 
 
-/* =====================================
-   CREATE NEW CLIENT
-   ===================================== */
-
-if (createClientBtn) {
-
-    createClientBtn.addEventListener(
-        "click",
-        function () {
-
-            selectedClientId = null;
-
-
-            clientButtons.forEach(
-                function (button) {
-
-                    button.classList.remove(
-                        "active"
-                    );
-
-                }
-            );
-
-
-            clientName.value = "";
-
-            commissionRate.value = "";
-
-            costLimit.value = "";
-
-
-            clientName.focus();
-
+        if (
+            commission !== "" &&
+            (
+                Number(commission) < 0 ||
+                Number(commission) > 100
+            )
+        ) {
 
             showClientMessage(
-                "Enter the new client information.",
-                "loading"
+                "Commission rate must be between 0 and 100.",
+                "error"
             );
 
+            return;
+
         }
-    );
-
-}
 
 
-/* =====================================
-   DELETE CLIENT
-   ===================================== */
+        if (
+            selectedClientId !== null &&
+            clients[selectedClientId]
+        ) {
 
-if (deleteClientBtn) {
+            clients[selectedClientId].name =
+                name;
 
-    deleteClientBtn.addEventListener(
-        "click",
-        function () {
-
-            if (selectedClientId === null) {
-
-                showClientMessage(
-                    "Please select a client to delete.",
-                    "error"
-                );
-
-                return;
-
-            }
+            clients[selectedClientId].commissionRate =
+                commission;
 
 
-            const client =
-                clients[selectedClientId];
-
-
-            if (!client) {
-
-                showClientMessage(
-                    "Client could not be found.",
-                    "error"
-                );
-
-                return;
-
-            }
-
-
-            const confirmed =
-                window.confirm(
-                    "Are you sure you want to delete " +
-                    client.name +
-                    "?"
-                );
-
-
-            if (!confirmed) {
-                return;
-            }
-
-
-            delete clients[selectedClientId];
-
-
-            const button =
+            const activeButton =
                 document.querySelector(
                     '.client-name[data-client="' +
                     selectedClientId +
@@ -413,65 +262,129 @@ if (deleteClientBtn) {
                 );
 
 
-            if (button) {
+            if (activeButton) {
 
-                button.style.display =
-                    "none";
+                activeButton.textContent =
+                    name;
 
             }
 
-
-            clientName.value = "";
-
-            commissionRate.value = "";
-
-            costLimit.value = "";
+        }
 
 
-            selectedClientId = null;
+        showClientMessage(
+            "Client details saved.",
+            "success"
+        );
 
+    }
+);
+
+
+/* =========================================
+   CREATE NEW CLIENT
+   ========================================= */
+
+createClientBtn.addEventListener(
+    "click",
+    function () {
+
+        selectedClientId =
+            null;
+
+
+        clientButtons.forEach(
+            function (button) {
+
+                button.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        clientId.value =
+            "Auto-generated";
+
+        clientName.value =
+            "";
+
+        commissionRate.value =
+            "";
+
+        dateAdded.value =
+            "Auto-generated";
+
+
+        clientName.focus();
+
+
+        showClientMessage(
+            "Enter the new client details.",
+            "loading"
+        );
+
+    }
+);
+
+
+/* =========================================
+   DELETE CLIENT
+   ========================================= */
+
+deleteClientBtn.addEventListener(
+    "click",
+    function () {
+
+        if (
+            selectedClientId === null
+        ) {
 
             showClientMessage(
-                "Client deleted successfully.",
-                "success"
+                "Select a client before deleting.",
+                "error"
             );
 
-        }
-    );
-
-}
-
-
-/* =====================================
-   DOWNLOAD SAMPLE REPORT
-   ===================================== */
-
-if (clientReportBtn) {
-
-    clientReportBtn.addEventListener(
-        "click",
-        function () {
-
-            /*
-             * For now, Luis provided the
-             * sample report download URL.
-             *
-             * Later this can be changed
-             * to generate a report for the
-             * currently selected client.
-             */
-
-            window.location.href =
-                "/reports/sample/download/";
+            return;
 
         }
-    );
-
-}
 
 
-/* =====================================
-   INITIAL PAGE LOAD
-   ===================================== */
+        const client =
+            clients[selectedClientId];
+
+
+        const confirmed =
+            window.confirm(
+                "Confirm Client Delete\n\nDelete " +
+                client.name +
+                " and their associated accounts?"
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        /*
+         * Backend delete endpoint still
+         * needs to be connected.
+         */
+
+        showClientMessage(
+            client.name +
+            " selected for deletion.",
+            "success"
+        );
+
+    }
+);
+
+
+/* =========================================
+   INITIAL LOAD
+   ========================================= */
 
 loadClient(1);

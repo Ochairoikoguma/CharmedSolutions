@@ -4,6 +4,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -11,7 +12,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>View Client Page</title>
+    <title>Regent & Associates - Clients</title>
 
     <link
         rel="stylesheet"
@@ -22,42 +23,45 @@
         src="{% static 'js/client.js' %}"
         defer
     ></script>
+
 </head>
 
 
 <body>
 
-<main class="app-container">
+<header class="top-header">
 
-
-    <!-- =====================================
-         PAGE HEADER
-         ===================================== -->
-
-    <div class="client-page-heading">
-
-        <h1>
-            VIEW CLIENT PAGE
-        </h1>
-
-        <a
-            href="/"
-            class="back-link"
-        >
-            &lt; back dashboard
-        </a>
-
+    <div class="brand">
+        Regent &amp; Associates
     </div>
 
+    <nav class="top-nav">
 
-    <p class="page-instructions">
-        Click desired client name. Select client to view.
-    </p>
+        <a href="/">
+            Dashboard
+        </a>
+
+        <a
+            href="/client/"
+            class="active-nav"
+        >
+            Clients
+        </a>
+
+        <a href="#">
+            Reports
+        </a>
+
+    </nav>
+
+</header>
 
 
-    <!-- =====================================
-         FEEDBACK MESSAGE
-         ===================================== -->
+<div class="green-line"></div>
+
+
+<main class="client-page-container">
+
 
     <div
         id="clientMessage"
@@ -65,144 +69,168 @@
     ></div>
 
 
-
-    <!-- =====================================
-         CLIENT PAGE MAIN GRID
-         ===================================== -->
-
-    <section class="client-page-grid">
+    <section class="three-column-layout">
 
 
-        <!-- =================================
-             LEFT COLUMN: CLIENT LIST
-             ================================= -->
+        <!-- =========================
+             COLUMN 1
+             CLIENT LIST
+             ========================= -->
 
-        <div class="client-list-box">
+        <div class="client-column">
 
-            <button
-                class="client-name active"
-                data-client="1"
+            <div class="column-header">
+                Client List
+            </div>
+
+
+            <div
+                id="clientList"
+                class="client-list"
             >
-                Client 1
-            </button>
+
+                <button
+                    type="button"
+                    class="client-name active"
+                    data-client="1"
+                >
+                    Alpha Funding
+                </button>
 
 
-            <button
-                class="client-name"
-                data-client="2"
-            >
-                Client 2
-            </button>
+                <button
+                    type="button"
+                    class="client-name"
+                    data-client="2"
+                >
+                    Capital Advance
+                </button>
 
 
-            <button
-                class="client-name"
-                data-client="3"
-            >
-                Client 3
-            </button>
+                <button
+                    type="button"
+                    class="client-name"
+                    data-client="3"
+                >
+                    Merchant Funding
+                </button>
 
 
-            <button
-                class="client-name"
-                data-client="4"
-            >
-                Client 4
-            </button>
+                <button
+                    type="button"
+                    class="client-name"
+                    data-client="4"
+                >
+                    Premier Capital
+                </button>
+
+            </div>
 
 
-            <div class="client-list-spacer"></div>
+            <div class="column-footer">
 
+                <button
+                    id="createClientBtn"
+                    type="button"
+                    class="app-button"
+                >
+                    Create New Client
+                </button>
 
-            <button
-                id="createClientBtn"
-                class="bottom-box-button"
-                type="button"
-            >
-                CREATE NEW
-            </button>
+            </div>
 
         </div>
 
 
 
-        <!-- =================================
-             CENTER COLUMN: CLIENT DETAILS
-             ================================= -->
+        <!-- =========================
+             COLUMN 2
+             CLIENT DETAILS
+             ========================= -->
 
-        <div class="client-details-box">
+        <div class="client-column">
 
-            <form id="clientForm">
-
-
-                <div class="sketch-form-row">
-
-                    <label for="clientName">
-                        NAME:
-                    </label>
-
-                    <input
-                        id="clientName"
-                        name="clientName"
-                        type="text"
-                        value="Client 1"
-                    >
-
-                </div>
+            <div class="column-header">
+                Client Details
+            </div>
 
 
-                <div class="sketch-form-row">
+            <form
+                id="clientForm"
+                class="client-details-form"
+            >
 
-                    <label for="commissionRate">
-                        C%:
-                    </label>
+
+                <label for="clientId">
+                    Client ID
+                </label>
+
+                <input
+                    id="clientId"
+                    type="text"
+                    value="1"
+                    readonly
+                >
+
+
+                <label for="clientName">
+                    Client Name
+                </label>
+
+                <input
+                    id="clientName"
+                    type="text"
+                    value="Alpha Funding"
+                >
+
+
+                <label for="commissionRate">
+                    Default Commission Rate
+                </label>
+
+                <div class="percent-input">
 
                     <input
                         id="commissionRate"
-                        name="commissionRate"
                         type="number"
                         min="0"
                         max="100"
                         value="20"
                     >
 
-                </div>
-
-
-                <div class="sketch-form-row">
-
-                    <label for="costLimit">
-                        COST LIMIT:
-                    </label>
-
-                    <input
-                        id="costLimit"
-                        name="costLimit"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value="20"
-                    >
+                    <span>%</span>
 
                 </div>
 
 
-                <div class="details-button-row">
+                <label for="dateAdded">
+                    Date Added
+                </label>
+
+                <input
+                    id="dateAdded"
+                    type="text"
+                    value="10/01/2026"
+                    readonly
+                >
+
+
+                <div class="details-actions">
 
                     <button
                         type="submit"
-                        class="bottom-box-button"
+                        class="app-button"
                     >
-                        SAVE
+                        Save Changes
                     </button>
 
 
                     <button
-                        type="button"
                         id="deleteClientBtn"
-                        class="bottom-box-button"
+                        type="button"
+                        class="delete-button"
                     >
-                        DELETE
+                        Delete Client
                     </button>
 
                 </div>
@@ -213,260 +241,68 @@
 
 
 
-        <!-- =================================
-             RIGHT COLUMN: PAYMENT / COST HISTORY
-             ================================= -->
+        <!-- =========================
+             COLUMN 3
+             REPORT HISTORY
+             ========================= -->
 
-        <div class="history-column">
+        <div class="client-column">
 
-
-            <!-- PAYMENTS -->
-
-            <div class="history-box">
-
-                <div class="history-title">
-                    PAYMENTS
-                </div>
-
-
-                <div class="history-scroll">
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0001
-                            </strong>
-
-                            <span>
-                                10/01/26
-                            </span>
-                        </div>
-
-                        <span>
-                            $500
-                        </span>
-
-                    </div>
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0001
-                            </strong>
-
-                            <span>
-                                10/03/26
-                            </span>
-                        </div>
-
-                        <span>
-                            $250
-                        </span>
-
-                    </div>
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0002
-                            </strong>
-
-                            <span>
-                                10/10/26
-                            </span>
-                        </div>
-
-                        <span>
-                            $1,000
-                        </span>
-
-                    </div>
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0002
-                            </strong>
-
-                            <span>
-                                10/18/26
-                            </span>
-                        </div>
-
-                        <span>
-                            $750
-                        </span>
-
-                    </div>
-
-
-                </div>
-
+            <div class="column-header">
+                Report History
             </div>
 
 
-
-            <!-- COSTS -->
-
-            <div class="history-box">
-
-                <div class="history-title">
-                    COSTS
-                </div>
+            <div
+                id="reportHistory"
+                class="report-history"
+            >
 
 
-                <div class="history-scroll">
+                <a
+                    href="/reports/saved/1/download/"
+                    target="_blank"
+                    class="report-history-item"
+                >
+
+                    <span>
+                        October, 2026
+                    </span>
+
+                </a>
 
 
-                    <div class="history-row">
+                <a
+                    href="/reports/saved/2/download/"
+                    target="_blank"
+                    class="report-history-item"
+                >
 
-                        <div>
-                            <strong>
-                                2026-0001
-                            </strong>
+                    <span>
+                        September, 2026
+                    </span>
 
-                            <span>
-                                Court Fee
-                            </span>
-                        </div>
-
-                        <span>
-                            $250
-                        </span>
-
-                    </div>
+                </a>
 
 
-                    <div class="history-row">
+                <a
+                    href="/reports/saved/3/download/"
+                    target="_blank"
+                    class="report-history-item"
+                >
 
-                        <div>
-                            <strong>
-                                2026-0001
-                            </strong>
+                    <span>
+                        August, 2026
+                    </span>
 
-                            <span>
-                                Filing Fee
-                            </span>
-                        </div>
-
-                        <span>
-                            $150
-                        </span>
-
-                    </div>
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0002
-                            </strong>
-
-                            <span>
-                                Service Fee
-                            </span>
-                        </div>
-
-                        <span>
-                            $100
-                        </span>
-
-                    </div>
-
-
-                    <div class="history-row">
-
-                        <div>
-                            <strong>
-                                2026-0002
-                            </strong>
-
-                            <span>
-                                Court Cost
-                            </span>
-                        </div>
-
-                        <span>
-                            $200
-                        </span>
-
-                    </div>
-
-
-                </div>
+                </a>
 
             </div>
 
         </div>
 
-    </section>
-
-
-
-    <!-- =====================================
-         REMITTANCE REPORT
-         ===================================== -->
-
-    <section class="remittance-report">
-
-        <h2>
-            Remittance Report
-        </h2>
-
-
-        <p>
-            Should match the current report format but be generated automatically.
-        </p>
-
-
-        <ul>
-
-            <li>
-                Client &amp; account information
-            </li>
-
-            <li>
-                Collections
-            </li>
-
-            <li>
-                Costs
-            </li>
-
-            <li>
-                Commission
-            </li>
-
-            <li>
-                Net remittance
-            </li>
-
-            <li>
-                Period payment + cost totals
-            </li>
-
-        </ul>
-
-
-        <button
-            id="clientReportBtn"
-            class="sketch-button"
-            type="button"
-        >
-            GENERATE REPORT
-        </button>
 
     </section>
-
 
 </main>
 
