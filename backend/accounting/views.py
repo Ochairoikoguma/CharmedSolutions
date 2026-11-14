@@ -273,4 +273,86 @@ def client_report_history(request, client_id):
         )
     ]
 
+@require_POST
+def create_client(request):
+    """Create a new client in MySQL."""
+
+    try:
+        data = json.loads(request.body)
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse(
+            {"error": "Invalid JSON."},
+            status=400
+        )
+
+    if not isinstance(data, dict):
+        return JsonResponse(
+            {"error": "Invalid request."},
+            status=400
+        )
+
+    name = data.get("name")
+    raw_rate = data.get("rate")
+
+    # Validate client name
+    if not isinstance(name, str) or not name.strip():
+        return JsonResponse(
+            {"error": "Client name is required."},
+            status=400
+        )
+
+    name = " ".join(name.split())
+
+    if len(name) > 150:
+        return JsonResponse(
+            {"error": "Client name is too long."},
+            status=400
+        )
+
+    # Commission rate is optional
+    try:
+        rate = (
+            None if raw_rate is None or raw_rate == ""
+            else Decimal(str(raw_rate))
+        )
+
+        if rate is not None and (
+            not rate.is_finite()
+            or rate < 0
+            or rate > Decimal("99.99")
+            or rate != rate.quantize(Decimal("0.01"))
+        ):
+            raise ValueError()
+
+    except (InvalidOperation, ValueError):
+        return JsonResponse(
+            {"error": "Invalid commission rate."},
+            status=400
+        )
+
+    # Save the client in MySQL
+    try:
+        client = Client.objects.create(
+            client_name=name,
+            commission_rate=rate
+        )
+
+    except IntegrityError:
+        return JsonResponse(
+            {"error": "Client name already exists or could not be saved."},
+            status=409
+        )
+
+    # Return the newly created client
+    return JsonResponse({
+        "id": client.client_id,
+        "name": client.client_name,
+        "rate": (
+            str(client.commission_rate)
+            if client.commission_rate is not None
+            else None
+        ),
+        "created": client.date_created.isoformat()
+    }, status=201)
+
     return JsonResponse({"reports": data})
