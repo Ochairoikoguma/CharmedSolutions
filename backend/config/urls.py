@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounting.views import (home,sample_remittance_download,remittance_download,saved_remittance_download,)
+from accounting.views import client_page
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -31,4 +32,6 @@ urlpatterns = [
 
         #download an existing PDF from report history
     path("reports/history/<int:report_id>/download/",saved_remittance_download,name="saved_remittance_download",),
+
+    path("client/", client_page, name="client_page"),
 ]

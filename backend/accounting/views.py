@@ -152,3 +152,8 @@ def saved_remittance_download(request, report_id):
     filename = (f"remittance_{report.client_id}_"f"{report.report_period:%Y_%m}.pdf")
     response["Content-Disposition"] = (f'attachment; filename="{filename}"')
     return response
+
+from django.shortcuts import render
+
+def client_page(request):
+    return render(request, "client.html")
