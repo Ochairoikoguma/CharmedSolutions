@@ -27,7 +27,8 @@ function renderForm() {
   dom.name.value = c ? c.name : '';
   dom.rate.value = c && c.rate != null ? c.rate : '';
   dom.date.value = isDraft ? mdy(iso(new Date())) : c ? mdy(c.created) : '';
-  dom.del.disabled = !c;
+  // Keep deletion disabled until it is connected to Django.
+  dom.del.disabled = true;
 }
 function renderHistory() {
   const c = isDraft ? null : current();
@@ -83,4 +84,52 @@ dom.history.addEventListener('click', async e => {
   w.location = URL.createObjectURL(blob);
 });
 
-renderClients();
+async function loadDatabaseClients() {
+  // Disable editing until these buttons are connected to Django.
+  dom.form.querySelector('button[type="submit"]').disabled = true;
+  dom.create.disabled = true;
+  dom.del.disabled = true;
+  dom.name.readOnly = true;
+  dom.rate.readOnly = true;
+
+  dom.list.textContent = "Loading clients...";
+
+  try {
+    // Request the actual clients stored in MySQL.
+    const response = await fetch("/api/clients/", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Could not load clients from the database.");
+    }
+
+    const data = await response.json();
+
+    // Replace browser sample data in memory.
+    // Do not combine sample transactions with database client IDs.
+    S = {
+      clients: data.clients.map(client => ({
+        ...client,
+        rate: client.rate === null ? null : Number(client.rate),
+      })),
+      accounts: [],
+      payments: [],
+      costs: [],
+      reports: [],
+      nextId: 0,
+    };
+
+    isDraft = false;
+    renderClients();
+
+    // Client selection calls renderForm again, so keep Delete disabled.
+    dom.del.disabled = true;
+    toast("Database clients loaded. Editing and history are not connected yet.", "info");
+  } catch (error) {
+    dom.list.textContent = "Unable to load clients.";
+    toast(error.message, "error");
+  }
+}
+
+loadDatabaseClients();
