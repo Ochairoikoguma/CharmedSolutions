@@ -225,5 +225,130 @@ function seed() {
     k.forEach(([a, day]) => S.costs.push({ id: id(), clientId: c.id, acct: `AC-${1000 + i}`, date: d(day), amount: a, billed: false, desc: 'Court filing fee', due: m + '-01', debtor: 'Debtor ' + day }));
   });
 }
-if (!load()) { seed(); save(); }
-if ($('#clientTableBody')) initHome();   // home.html loads this file with defer, so the table already exists
+
+
+
+async function initDatabaseDashboard() {
+  // October 2026 is our imported reporting period.
+  const year = 2026;
+  const month = 10;
+
+  const tbody = $('#clientTableBody');
+  const previousBtn = $('#previousPageBtn');
+  const nextBtn = $('#nextPageBtn');
+  const pageIndicator = $('#pageIndicator');
+
+  $('#reportingPeriodText').textContent =
+    'Showing October 2026 - Financial totals not finalized';
+
+  // These actions must wait until their Django
+  // database implementations are connected.
+  [
+    'importClientDataBtn',
+    'rolloverSelectedBtn',
+    'rolloverAllBtn',
+    'generateAllReportsBtn'
+  ].forEach(id => {
+    const button = document.getElementById(id);
+    if (button) button.disabled = true;
+  });
+
+  // The cost amounts are pending, not yet applied.
+  $('#clientTable thead th:nth-child(4)').textContent =
+    'Pending Costs';
+
+  tbody.innerHTML =
+    '<tr><td colspan="6">Loading MySQL dashboard...</td></tr>';
+
+  previousBtn.disabled = true;
+  nextBtn.disabled = true;
+
+  try {
+    const response = await fetch(
+      `/api/dashboard/?year=${year}&month=${month}`,
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to load dashboard data.');
+    }
+
+    const data = await response.json();
+
+    const clients = data.clients.sort(
+      (a, b) => Number(b.recoveries) - Number(a.recoveries)
+    );
+
+    // Backend amounts are dollars. Existing money()
+    // expects cents.
+    const formatAmount = value =>
+      money(Math.round(Number(value) * 100));
+
+    let currentPage = 0;
+
+    function renderDatabasePage() {
+      const totalPages = Math.max(
+        1,
+        Math.ceil(clients.length / PAGE_SIZE)
+      );
+
+      const start = currentPage * PAGE_SIZE;
+      const rows = clients.slice(start, start + PAGE_SIZE);
+
+      tbody.innerHTML = rows.map(c => {
+        const recoveries = Number(c.recoveries);
+        const pendingCosts = Number(c.pending_costs);
+        const exceedsCap = pendingCosts > recoveries * 0.20;
+
+        return `
+          <tr data-client-id="${c.id}">
+            <td class="checkbox-column">—</td>
+            <td>
+              <a href="/client/?id=${c.id}">
+                ${esc(c.name)}
+              </a>
+            </td>
+            <td class="money">
+              ${formatAmount(c.recoveries)}
+            </td>
+            <td class="money ${exceedsCap ? 'cost-flagged' : ''}">
+              ${formatAmount(c.pending_costs)}
+            </td>
+            <td>
+              ${c.rate === null ? 'Not Set' : '—'}
+            </td>
+            <td>—</td>
+          </tr>
+        `;
+      }).join('') ||
+        '<tr><td colspan="6">No clients found.</td></tr>';
+
+      pageIndicator.textContent =
+        `${currentPage + 1} of ${totalPages}`;
+
+      previousBtn.disabled = currentPage === 0;
+      nextBtn.disabled = currentPage >= totalPages - 1;
+    }
+
+    previousBtn.addEventListener('click', () => {
+      currentPage--;
+      renderDatabasePage();
+    });
+
+    nextBtn.addEventListener('click', () => {
+      currentPage++;
+      renderDatabasePage();
+    });
+
+    renderDatabasePage();
+
+  } catch (error) {
+    tbody.innerHTML =
+      '<tr><td colspan="6">Unable to load dashboard data.</td></tr>';
+
+    toast(error.message, 'error');
+  }
+}
+
+if ($('#clientTableBody')) initDatabaseDashboard();   // home.html loads this file with defer, so the table already exists
+

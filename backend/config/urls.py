@@ -22,6 +22,7 @@ from accounting.views import client_list_data
 from accounting.views import update_client
 from accounting.views import client_report_history
 from accounting.views import create_client
+from accounting.views import dashboard_data
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
@@ -44,4 +45,6 @@ urlpatterns = [
     path("api/clients/<int:client_id>/reports/",client_report_history,name="client_report_history"),
 
     path("api/clients/create/",create_client,name="create_client"),
+
+    path("api/dashboard/",dashboard_data,name="dashboard_data"),
 ]
