@@ -30,13 +30,56 @@ function renderForm() {
   // Keep deletion disabled until it is connected to Django.
   dom.del.disabled = true;
 }
-function renderHistory() {
+async function renderHistory() {
   const c = isDraft ? null : current();
-  if (!c) { dom.history.innerHTML = note(isDraft ? 'Save the client to start building report history.' : 'Select a client to see their reports.'); return; }
-  const reports = S.reports.filter(r => r.clientId == c.id).sort((a, b) => b.period.localeCompare(a.period));
-  dom.history.innerHTML = reports.map(r =>
-    `<a href="#" class="report-history-item" data-period="${r.period}"><span>${label(r.period)}</span></a>`
-  ).join('') || note('No reports yet. Generate one from the dashboard.');
+
+  if (!c) {
+    dom.history.innerHTML = note(
+      'Select a client to see their reports.'
+    );
+    return;
+  }
+
+  const clientId = c.id;
+
+  dom.history.innerHTML = note('Loading report history...');
+
+  try {
+    const response = await fetch(
+      `/api/clients/${clientId}/reports/`,
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      throw new Error('Could not load report history.');
+    }
+
+    const data = await response.json();
+
+    // Prevent an old request from updating a newly selected client.
+    if (isDraft || curId != clientId) return;
+
+    if (data.reports.length === 0) {
+      dom.history.innerHTML = note('No saved reports yet.');
+      return;
+    }
+
+    dom.history.innerHTML = data.reports.map(r => `
+      <a
+        href="/reports/history/${r.id}/download/"
+        class="report-history-item"
+      >
+        <span>${label(r.period)}</span>
+      </a>
+    `).join('');
+
+  } catch (error) {
+    if (!isDraft && curId == clientId) {
+      dom.history.innerHTML = note(
+        'Unable to load report history.'
+      );
+    }
+  }
 }
 function renderClients() {
   if (!isDraft && !current()) curId = sortedClients()[0]?.id ?? null;   // default to the first client
@@ -118,14 +161,6 @@ dom.del.addEventListener('click', () => {
   S.clients = S.clients.filter(x => x.id != c.id);
   ['accounts', 'payments', 'costs', 'reports'].forEach(k => S[k] = S[k].filter(x => x.clientId != c.id));
   curId = null; save(); renderClients(); toast('Client deleted.');
-});
-dom.history.addEventListener('click', async e => {
-  const a = e.target.closest('.report-history-item'); if (!a) return;
-  e.preventDefault();
-  const r = S.reports.find(x => x.clientId == curId && x.period == a.dataset.period); if (!r) return;
-  const w = window.open('', '_blank');                                  // open first so the popup isn't blocked
-  const blob = await (await fetch(r.data)).blob();
-  w.location = URL.createObjectURL(blob);
 });
 
 async function loadDatabaseClients() {
