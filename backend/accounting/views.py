@@ -15,6 +15,7 @@ from decimal import InvalidOperation
 from django.db import IntegrityError
 from django.db.models import Sum
 from .models import Payment, Cost
+from accounting.services.calculations import (calculate_cost_ceiling,calculate_billable_costs,calculate_monthly_remittance,)
 
 @require_GET
 def client_list_data(request):
@@ -357,9 +358,10 @@ def create_client(request):
         "created": client.date_created.isoformat()
     }, status=201)
 
+
 @require_GET
 def dashboard_data(request):
-    """Return monthly financial data for the dashboard."""
+    """Return read-only monthly financial previews."""
 
     try:
         year = int(request.GET.get("year", ""))
@@ -381,7 +383,7 @@ def dashboard_data(request):
             status=400
         )
 
-    # Total payments received during the selected month.
+    # Get monthly recoveries from MySQL.
     payment_totals = {
         row["account__client_id"]: row["total"]
         for row in Payment.objects.filter(
@@ -392,30 +394,72 @@ def dashboard_data(request):
         )
     }
 
-    # Unbilled costs due during the selected month.
-    cost_totals = {
-        row["account__client_id"]: row["total"]
-        for row in Cost.objects.filter(
-            billed=False,
-            due_date__gte=period_start,
-            due_date__lt=period_end
-        ).values("account__client_id").annotate(
-            total=Sum("cost_amount")
-        )
-    }
+    # Get outstanding costs and group them by client.
+    costs_by_client = {}
+
+    cost_rows = Cost.objects.filter(
+        billed=False,
+        due_date__gte=period_start,
+        due_date__lt=period_end
+    ).values(
+        "account__client_id",
+        "cost_id",
+        "cost_date",
+        "cost_amount",
+        "billed",
+    )
+
+    for row in cost_rows:
+        client_id = row["account__client_id"]
+
+        costs_by_client.setdefault(client_id, []).append({
+            "CostID": row["cost_id"],
+            "CostDate": row["cost_date"],
+            "CostAmount": row["cost_amount"],
+            "Billed": row["billed"],
+        })
 
     clients = []
 
     for client in Client.objects.order_by("client_name"):
+
         recoveries = payment_totals.get(
             client.client_id, Decimal("0.00")
         )
 
-        pending_costs = cost_totals.get(
-            client.client_id, Decimal("0.00")
+        costs = costs_by_client.get(client.client_id, [])
+
+        pending_costs = sum(
+            (cost["CostAmount"] for cost in costs),
+            Decimal("0.00")
         )
 
-        # These are raw monthly totals, not finalized remittances.
+        # Apply Michael's existing 20% cap calculation.
+        ceiling = calculate_cost_ceiling(recoveries)
+
+        proposal = calculate_billable_costs(
+            costs,
+            ceiling
+        )
+
+        applied_costs = proposal["total_billed"]
+        deferred_costs = pending_costs - applied_costs
+
+        # Commission and net remittance require a rate.
+        commission = None
+        net_remittance = None
+
+        if client.commission_rate is not None:
+
+            totals = calculate_monthly_remittance(
+                gross_recoveries=recoveries,
+                applied_costs=applied_costs,
+                commission_rate=client.commission_rate
+            )
+
+            commission = totals["commission"]
+            net_remittance = totals["net_remittance"]
+
         clients.append({
             "id": client.client_id,
             "name": client.client_name,
@@ -425,11 +469,23 @@ def dashboard_data(request):
                 else None
             ),
             "recoveries": str(recoveries),
-            "pending_costs": str(pending_costs)
+            "pending_costs": str(pending_costs),
+            "cost_ceiling": str(ceiling),
+            "applied_costs": str(applied_costs),
+            "deferred_costs": str(deferred_costs),
+            "commission": (
+                str(commission)
+                if commission is not None else None
+            ),
+            "net_remittance": (
+                str(net_remittance)
+                if net_remittance is not None else None
+            )
         })
 
     return JsonResponse({
         "year": year,
         "month": month,
+        "preview": True,
         "clients": clients
     })
