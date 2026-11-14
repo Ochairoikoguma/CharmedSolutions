@@ -4,8 +4,9 @@ from decimal import Decimal
 from django.db import transaction
 
 from accounting.models import Client, Payment, Cost, Remittance
-from accounting.services.calculations import calculate_monthly_remittance
+from accounting.services.calculations import (calculate_monthly_remittance,calculate_cost_ceiling,calculate_billable_costs,)
 from accounting.services.reports import generate_remittance_pdf
+from accounting.services.rollovers import next_month
 
 
 #Read clients monthly records and calculate report totals
@@ -30,12 +31,65 @@ def prepare_remittance_data(client_id, year, month):
     costs = list(Cost.objects.select_related("account")
         .filter(account__client=client,billed=False,due_date__gte=period_start,due_date__lt=period_end,).order_by("cost_date", "cost_id"))
 
-    gross_recoveries = sum((payment.payment_amount for payment in payments),Decimal("0.00"),)
-    applied_costs = sum((cost.cost_amount for cost in costs),Decimal("0.00"),)
+
+    # Calculate total monthly recoveries
+    gross_recoveries = sum(
+        (payment.payment_amount for payment in payments),
+        Decimal("0.00"),
+    )
+
+    # Calculate the 20% cost ceiling
+    cost_ceiling = calculate_cost_ceiling(gross_recoveries)
+
+    # Convert MySQL costs into the format Michael's service expects
+    cost_records = [
+        {
+            "CostID": cost.cost_id,
+            "CostDate": cost.cost_date,
+            "CostAmount": cost.cost_amount,
+            "Billed": cost.billed,
+            "DueDate": cost.due_date,
+        }
+        for cost in costs
+    ]
+
+    # Determine which costs can be billed and which must roll over
+    proposal = calculate_billable_costs(
+        cost_records,
+        cost_ceiling,
+    )
+
+    billable_ids = {
+        item["CostID"] for item in proposal["billed_costs"]
+    }
+
+    rollover_ids = {
+        item["CostID"] for item in proposal["rollover_costs"]
+    }
+
+    billable_costs = [
+        cost for cost in costs if cost.cost_id in billable_ids
+    ]
+
+    rollover_costs = [
+        cost for cost in costs if cost.cost_id in rollover_ids
+    ]
+
+    # Only permitted costs can be deducted
+    applied_costs = proposal["total_billed"]
+
 
     totals = calculate_monthly_remittance(gross_recoveries=gross_recoveries,applied_costs=applied_costs,commission_rate=client.commission_rate,)
 
-    return {"client": client,"report_period": period_start,"payments": payments,"costs": costs,"totals": totals,}
+    return {
+    "client": client,
+    "report_period": period_start,
+    "payments": payments,
+    "costs": billable_costs,
+    "rollover_costs": rollover_costs,
+    "cost_ceiling": cost_ceiling,
+    "totals": totals,
+}
 
 def build_remittance_pdf(data):
     #Build a PDF from the client's records and calculated totals
@@ -140,9 +194,29 @@ def save_remittance_report(client_id, year, month):
 
 
 
-    # Mark only the costs included in this report as billed
-    included_cost_ids = [cost.pk for cost in data["costs"]]
+    
+    # Mark only permitted costs as billed.
+    included_cost_ids = [
+        cost.pk for cost in data["costs"]
+    ]
 
-    Cost.objects.filter(pk__in=included_cost_ids).update(billed=True)
-    #If an exception occurs, neither change is committed
+    Cost.objects.filter(
+        pk__in=included_cost_ids,
+        billed=False
+    ).update(billed=True)
+
+    # Move deferred costs to the following month.
+    rollover_costs = data["rollover_costs"]
+
+    for cost in rollover_costs:
+        cost.due_date = next_month(cost.due_date)
+
+    if rollover_costs:
+        Cost.objects.bulk_update(
+            rollover_costs,
+            ["due_date"]
+        )
+
+    # Billing, rollover, and report creation are all
+    # protected by the existing @transaction.atomic decorator.
     return report
