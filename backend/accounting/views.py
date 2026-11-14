@@ -10,6 +10,9 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST, require_GET
 from .models import Client, Remittance
 from django.http import JsonResponse
+import json
+from decimal import InvalidOperation
+from django.db import IntegrityError
 
 @require_GET
 def client_list_data(request):
@@ -188,3 +191,59 @@ from django.shortcuts import render
 
 def client_page(request):
     return render(request, "client.html")
+
+@require_POST
+def update_client(request, client_id):
+    """Update an existing client's name and commission rate."""
+
+    client = Client.objects.filter(pk=client_id).first()
+
+    if client is None:
+        return JsonResponse({"error": "Client not found."}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    name = data.get("name")
+    raw_rate = data.get("rate")
+
+    if not isinstance(name, str) or not name.strip():
+        return JsonResponse({"error": "Client name is required."}, status=400)
+
+    name = " ".join(name.split())
+
+    if len(name) > 150:
+        return JsonResponse({"error": "Client name is too long."}, status=400)
+
+    try:
+        rate = None if raw_rate is None or raw_rate == "" else Decimal(str(raw_rate))
+
+        if rate is not None and (
+            not rate.is_finite()
+            or rate < 0
+            or rate > Decimal("99.99")
+            or rate != rate.quantize(Decimal("0.01"))
+        ):
+            raise ValueError()
+
+    except (InvalidOperation, ValueError):
+        return JsonResponse({"error": "Invalid commission rate."}, status=400)
+
+    client.client_name = name
+    client.commission_rate = rate
+
+    try:
+        client.save(update_fields=["client_name", "commission_rate"])
+    except IntegrityError:
+        return JsonResponse({"error": "Client name already exists."}, status=409)
+
+    return JsonResponse({
+        "id": client.client_id,
+        "name": client.client_name,
+        "rate": str(client.commission_rate) if client.commission_rate is not None else None
+    })
