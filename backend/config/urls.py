@@ -20,6 +20,7 @@ from accounting.views import (home,sample_remittance_download,remittance_downloa
 from accounting.views import client_page
 from accounting.views import client_list_data
 from accounting.views import update_client
+from accounting.views import client_report_history
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
@@ -39,4 +40,5 @@ urlpatterns = [
     path("api/clients/", client_list_data, name="client_list_data"),
 
     path("api/clients/<int:client_id>/", update_client, name="update_client"),
+    path("api/clients/<int:client_id>/reports/",client_report_history,name="client_report_history"),
 ]

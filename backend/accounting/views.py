@@ -247,3 +247,30 @@ def update_client(request, client_id):
         "name": client.client_name,
         "rate": str(client.commission_rate) if client.commission_rate is not None else None
     })
+
+@require_GET
+def client_report_history(request, client_id):
+
+    #verify that client exists
+    if not Client.objects.filter(pk=client_id).exists():
+        return JsonResponse({"error": "Client not found."},status=404)
+
+    #get saved reports from db newest first
+    reports = Remittance.objects.filter(client_id=client_id).order_by("-report_period", "-remittance_id")
+
+    # Return report information without loading pdf files
+    data = [
+        {
+            "id": report["remittance_id"],
+            "period": report["report_period"].isoformat(),
+            "download_url": (
+                f"/reports/history/{report['remittance_id']}/download/"
+            ),
+        }
+        for report in reports.values(
+            "remittance_id",
+            "report_period"
+        )
+    ]
+
+    return JsonResponse({"reports": data})
