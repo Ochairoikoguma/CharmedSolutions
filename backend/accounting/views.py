@@ -13,6 +13,8 @@ from django.http import JsonResponse
 import json
 from decimal import InvalidOperation
 from django.db import IntegrityError
+from django.db.models import Sum
+from .models import Payment, Cost
 
 @require_GET
 def client_list_data(request):
@@ -272,7 +274,7 @@ def client_report_history(request, client_id):
             "report_period"
         )
     ]
-
+    return JsonResponse({"reports": data})
 @require_POST
 def create_client(request):
     """Create a new client in MySQL."""
@@ -355,4 +357,79 @@ def create_client(request):
         "created": client.date_created.isoformat()
     }, status=201)
 
-    return JsonResponse({"reports": data})
+@require_GET
+def dashboard_data(request):
+    """Return monthly financial data for the dashboard."""
+
+    try:
+        year = int(request.GET.get("year", ""))
+        month = int(request.GET.get("month", ""))
+
+        if not 1 <= year <= 9998:
+            raise ValueError()
+
+        period_start = date(year, month, 1)
+
+        if month == 12:
+            period_end = date(year + 1, 1, 1)
+        else:
+            period_end = date(year, month + 1, 1)
+
+    except (ValueError, TypeError):
+        return JsonResponse(
+            {"error": "Invalid reporting period."},
+            status=400
+        )
+
+    # Total payments received during the selected month.
+    payment_totals = {
+        row["account__client_id"]: row["total"]
+        for row in Payment.objects.filter(
+            payment_date__gte=period_start,
+            payment_date__lt=period_end
+        ).values("account__client_id").annotate(
+            total=Sum("payment_amount")
+        )
+    }
+
+    # Unbilled costs due during the selected month.
+    cost_totals = {
+        row["account__client_id"]: row["total"]
+        for row in Cost.objects.filter(
+            billed=False,
+            due_date__gte=period_start,
+            due_date__lt=period_end
+        ).values("account__client_id").annotate(
+            total=Sum("cost_amount")
+        )
+    }
+
+    clients = []
+
+    for client in Client.objects.order_by("client_name"):
+        recoveries = payment_totals.get(
+            client.client_id, Decimal("0.00")
+        )
+
+        pending_costs = cost_totals.get(
+            client.client_id, Decimal("0.00")
+        )
+
+        # These are raw monthly totals, not finalized remittances.
+        clients.append({
+            "id": client.client_id,
+            "name": client.client_name,
+            "rate": (
+                str(client.commission_rate)
+                if client.commission_rate is not None
+                else None
+            ),
+            "recoveries": str(recoveries),
+            "pending_costs": str(pending_costs)
+        })
+
+    return JsonResponse({
+        "year": year,
+        "month": month,
+        "clients": clients
+    })
