@@ -27,6 +27,8 @@ function renderForm() {
   dom.name.value = c ? c.name : '';
   dom.rate.value = c && c.rate != null ? c.rate : '';
   dom.date.value = isDraft ? mdy(iso(new Date())) : c ? mdy(c.created) : '';
+  dom.form.querySelector('button[type="submit"]').textContent =
+    isDraft ? 'Create Client' : 'Save Changes';
   // Keep deletion disabled until it is connected to Django.
   dom.del.disabled = true;
 }
@@ -96,13 +98,15 @@ dom.list.addEventListener('click', e => {
 dom.create.addEventListener('click', () => {
   isDraft = true; curId = null; renderClients(); dom.name.focus();
 });
+
 dom.form.addEventListener('submit', async e => {
   e.preventDefault();
 
-  const c = current();
+  const creating = isDraft;
+  const c = creating ? null : current();
 
-  if (!c || isDraft) {
-    return toast('Select an existing client first.', 'error');
+  if (!creating && !c) {
+    return toast('Select a client first.', 'error');
   }
 
   const name = dom.name.value.trim().replace(/\s+/g, ' ');
@@ -110,6 +114,10 @@ dom.form.addEventListener('submit', async e => {
 
   if (!name) {
     return toast('Enter a client name.', 'error');
+  }
+
+  if (name.length > 150) {
+    return toast('Client name is too long.', 'error');
   }
 
   if (rate !== '' && (
@@ -123,7 +131,11 @@ dom.form.addEventListener('submit', async e => {
   saveButton.disabled = true;
 
   try {
-    const response = await fetch(`/api/clients/${c.id}/`, {
+    const url = creating
+      ? '/api/clients/create/'
+      : `/api/clients/${c.id}/`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -143,11 +155,29 @@ dom.form.addEventListener('submit', async e => {
       throw new Error(data.error || 'Could not save client.');
     }
 
-    c.name = data.name;
-    c.rate = data.rate === null ? null : Number(data.rate);
+    if (creating) {
+      // MySQL assigns the new client ID.
+      S.clients.push({
+        id: data.id,
+        name: data.name,
+        rate: data.rate === null ? null : Number(data.rate),
+        created: data.created
+      });
+
+      curId = data.id;
+      isDraft = false;
+
+    } else {
+      // Update the existing client on the page.
+      c.name = data.name;
+      c.rate = data.rate === null ? null : Number(data.rate);
+    }
 
     renderClients();
-    toast('Client saved to database.');
+
+    toast(creating
+      ? 'New client created in MySQL.'
+      : 'Client saved to database.');
 
   } catch (error) {
     toast(error.message, 'error');
@@ -155,6 +185,7 @@ dom.form.addEventListener('submit', async e => {
     saveButton.disabled = false;
   }
 });
+
 dom.del.addEventListener('click', () => {
   const c = current(); if (!c) return;
   if (!confirm(`Confirm Client Delete\n\nDelete "${c.name}" along with all of their accounts and transactions? This cannot be undone.`)) return;
@@ -206,6 +237,7 @@ async function loadDatabaseClients() {
     // Client selection calls renderForm again, so keep Delete disabled.
     dom.del.disabled = true;
     dom.form.querySelector('button[type="submit"]').disabled = false;
+    dom.create.disabled = false;
     toast("Database clients loaded. Editing and history are not connected yet.", "info");
     
   } catch (error) {
