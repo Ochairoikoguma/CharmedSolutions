@@ -255,7 +255,7 @@ async function initDatabaseDashboard() {
 
   // The cost amounts are pending, not yet applied.
   $('#clientTable thead th:nth-child(4)').textContent =
-    'Pending Costs';
+    'Applied Costs';
 
   tbody.innerHTML =
     '<tr><td colspan="6">Loading MySQL dashboard...</td></tr>';
@@ -295,33 +295,50 @@ async function initDatabaseDashboard() {
       const start = currentPage * PAGE_SIZE;
       const rows = clients.slice(start, start + PAGE_SIZE);
 
+      
       tbody.innerHTML = rows.map(c => {
-        const recoveries = Number(c.recoveries);
-        const pendingCosts = Number(c.pending_costs);
-        const exceedsCap = pendingCosts > recoveries * 0.20;
+        const deferredCosts = Number(c.deferred_costs);
+        const hasDeferred = deferredCosts > 0;
 
         return `
           <tr data-client-id="${c.id}">
             <td class="checkbox-column">—</td>
+
             <td>
               <a href="/client/?id=${c.id}">
                 ${esc(c.name)}
               </a>
             </td>
+
             <td class="money">
               ${formatAmount(c.recoveries)}
             </td>
-            <td class="money ${exceedsCap ? 'cost-flagged' : ''}">
-              ${formatAmount(c.pending_costs)}
+
+            <td class="money ${hasDeferred ? 'cost-flagged' : ''}">
+              ${formatAmount(c.applied_costs)}
+              ${hasDeferred
+                ? `<div style="font-size:0.8em;">
+                    Deferred: ${formatAmount(c.deferred_costs)}
+                  </div>`
+                : ''}
             </td>
-            <td>
-              ${c.rate === null ? 'Not Set' : '—'}
+
+            <td class="money">
+              ${c.commission === null
+                ? '<span class="missing-value">Not Set</span>'
+                : formatAmount(c.commission)}
             </td>
-            <td>—</td>
+
+            <td class="money">
+              ${c.net_remittance === null
+                ? '—'
+                : formatAmount(c.net_remittance)}
+            </td>
           </tr>
         `;
       }).join('') ||
         '<tr><td colspan="6">No clients found.</td></tr>';
+
 
       pageIndicator.textContent =
         `${currentPage + 1} of ${totalPages}`;
