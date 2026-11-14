@@ -9,6 +9,37 @@ from .services.remittance import save_remittance_report
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST, require_GET
 from .models import Client, Remittance
+from django.http import JsonResponse
+
+@require_GET
+def client_list_data(request):
+    """Return database clients for the frontend."""
+
+    # Read clients alphabetically from MySQL.
+    clients = Client.objects.order_by("client_name", "client_id")
+
+    
+    #An unset commission rate stays None and becomes null in JSON
+    data = [
+        {
+            "id": client.client_id,
+            "name": client.client_name,
+            "rate": (
+                str(client.commission_rate)
+                if client.commission_rate is not None
+                else None
+            ),
+            "created": (
+                client.date_created.isoformat()
+                if client.date_created
+                else None
+            ),
+        }
+        for client in clients
+    ]
+
+    #send client data without changing db records
+    return JsonResponse({"clients": data})
 
 
 def home(request):
