@@ -19,7 +19,7 @@ from django.urls import path
 from accounting.views import (home,sample_remittance_download,remittance_download,saved_remittance_download,)
 from accounting.views import client_page
 from accounting.views import client_list_data
-
+from accounting.views import update_client
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
@@ -37,4 +37,6 @@ urlpatterns = [
     path("client/", client_page, name="client_page"),
 
     path("api/clients/", client_list_data, name="client_list_data"),
+
+    path("api/clients/<int:client_id>/", update_client, name="update_client"),
 ]

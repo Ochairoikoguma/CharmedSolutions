@@ -156,9 +156,11 @@
 
 
             <form
+            
                 id="clientForm"
                 class="client-details-form"
             >
+                {% csrf_token %}
 
 
                 <label for="clientId">

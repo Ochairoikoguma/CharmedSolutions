@@ -53,20 +53,64 @@ dom.list.addEventListener('click', e => {
 dom.create.addEventListener('click', () => {
   isDraft = true; curId = null; renderClients(); dom.name.focus();
 });
-dom.form.addEventListener('submit', e => {
+dom.form.addEventListener('submit', async e => {
   e.preventDefault();
-  const name = dom.name.value.trim().replace(/\s+/g, ' ');
-  const rate = dom.rate.value === '' ? null : +dom.rate.value;
-  if (!name) return toast('Enter a client name.', 'error');
-  if (S.clients.some(x => norm(x.name) == norm(name) && x.id != curId)) return toast('A client with that name already exists.', 'error');
-  if (rate !== null && (isNaN(rate) || rate < 0 || rate > 100)) return toast('Commission rate must be between 0 and 100.', 'error');
-  if (isDraft) {
-    const c = { id: id(), name, rate, created: iso(new Date()) };
-    S.clients.push(c); curId = c.id; isDraft = false;
-  } else {
-    const c = current(); c.name = name; c.rate = rate;
+
+  const c = current();
+
+  if (!c || isDraft) {
+    return toast('Select an existing client first.', 'error');
   }
-  save(); renderClients(); toast('Client saved.');
+
+  const name = dom.name.value.trim().replace(/\s+/g, ' ');
+  const rate = dom.rate.value.trim();
+
+  if (!name) {
+    return toast('Enter a client name.', 'error');
+  }
+
+  if (rate !== '' && (
+    !/^\d{1,2}(\.\d{1,2})?$/.test(rate) ||
+    Number(rate) > 99.99
+  )) {
+    return toast('Commission rate must be between 0 and 99.99.', 'error');
+  }
+
+  const saveButton = dom.form.querySelector('button[type="submit"]');
+  saveButton.disabled = true;
+
+  try {
+    const response = await fetch(`/api/clients/${c.id}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': dom.form.querySelector(
+          '[name=csrfmiddlewaretoken]'
+        ).value
+      },
+      body: JSON.stringify({
+        name: name,
+        rate: rate === '' ? null : rate
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Could not save client.');
+    }
+
+    c.name = data.name;
+    c.rate = data.rate === null ? null : Number(data.rate);
+
+    renderClients();
+    toast('Client saved to database.');
+
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    saveButton.disabled = false;
+  }
 });
 dom.del.addEventListener('click', () => {
   const c = current(); if (!c) return;
@@ -89,8 +133,9 @@ async function loadDatabaseClients() {
   dom.form.querySelector('button[type="submit"]').disabled = true;
   dom.create.disabled = true;
   dom.del.disabled = true;
-  dom.name.readOnly = true;
-  dom.rate.readOnly = true;
+  dom.name.readOnly = false;
+  dom.rate.readOnly = false;
+  dom.rate.max = '99.99';
 
   dom.list.textContent = "Loading clients...";
 
@@ -125,7 +170,9 @@ async function loadDatabaseClients() {
 
     // Client selection calls renderForm again, so keep Delete disabled.
     dom.del.disabled = true;
+    dom.form.querySelector('button[type="submit"]').disabled = false;
     toast("Database clients loaded. Editing and history are not connected yet.", "info");
+    
   } catch (error) {
     dom.list.textContent = "Unable to load clients.";
     toast(error.message, "error");
