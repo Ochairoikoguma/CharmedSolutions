@@ -5,83 +5,63 @@
 
 <head>
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-
     <title>Regent & Associates - Dashboard</title>
-
+    <link
+        rel="icon"
+        type="image/jpeg"
+        href="{% static 'img/ra-logo.jpg' %}"
+    >
+    <meta name="theme-color" content="#001F3F">
     <link
         rel="stylesheet"
         href="{% static 'css/styles.css' %}"
     >
-
     <script
         src="{% static 'js/main.js' %}"
         defer
     ></script>
 </head>
 
-
 <body>
-
 <header class="top-header">
-
     <div class="brand">
-        Regent &amp; Associates
+        <img
+            src="{% static 'img/ra-logo.jpeg' %}"
+            alt=""
+        >
+        <span>Regent &amp; Associates</span>
     </div>
-
     <nav class="top-nav">
-
         <a
             href="/"
             class="active-nav"
         >
             Dashboard
         </a>
-
         <a href="/client/">
             Clients
         </a>
-
-        <a href="#">
-            Reports
-        </a>
-
     </nav>
-
 </header>
 
-
 <div class="green-line"></div>
-<form id="dashboardCsrf" hidden>
-    {% csrf_token %}
-</form>
-
 
 <main class="page-container">
-
     <!-- =========================
          DASHBOARD HEADER
          ========================= -->
-
     <section class="page-heading">
-
         <div>
-
             <h1>
                 Dashboard
             </h1>
-
             <p id="reportingPeriodText">
-                Showing clients for November 2026
             </p>
-
         </div>
-
-
         <button
             id="importClientDataBtn"
             class="app-button"
@@ -89,47 +69,32 @@
         >
             Import Client Data
         </button>
-
-
         <input
             id="csvFileInput"
             type="file"
             accept=".csv,text/csv"
             hidden
         >
-
     </section>
-
-
     <!-- =========================
          MESSAGE AREA
          ========================= -->
-
     <div
         id="messageBox"
         class="message hidden"
     ></div>
-
-
     <!-- =========================
          CLIENT TABLE
          ========================= -->
-
     <section class="table-panel">
-
         <table
             id="clientTable"
             class="data-table"
         >
-
             <thead>
-
                 <tr>
-
                     <th class="checkbox-column">
-
                         <div class="rollover-header">
-
                             <button
                                 id="rolloverSelectedBtn"
                                 type="button"
@@ -137,258 +102,33 @@
                             >
                                 Rollover
                             </button>
-
                         </div>
-
                     </th>
-
-
                     <th>
                         Client
                     </th>
-
-
                     <th>
                         Recoveries
                     </th>
-
-
                     <th>
                         Costs
                     </th>
-
-
                     <th>
                         Commission
                     </th>
-
-
                     <th>
                         Net Remit
                     </th>
-
                 </tr>
-
             </thead>
-
-
             <tbody id="clientTableBody">
-
-                <!--
-                    Temporary frontend data.
-
-                    The table is intentionally arranged
-                    largest recovery first.
-                -->
-
-                <tr
-                    data-client-id="1"
-                    data-recoveries="15000"
-                    data-costs="2000"
-                    data-commission-rate="20"
-                >
-
-                    <td>
-
-                        <input
-                            class="client-checkbox"
-                            type="checkbox"
-                            aria-label="Select Client 1"
-                        >
-
-                    </td>
-
-
-                    <td>
-                        Client 1
-                    </td>
-
-
-                    <td class="money">
-                        $15,000.00
-                    </td>
-
-
-                    <td
-                        class="money cost-value"
-                        data-cost="2000"
-                        data-recovery="15000"
-                    >
-                        $2,000.00
-                    </td>
-
-
-                    <td class="money">
-                        $3,000.00
-                    </td>
-
-
-                    <td class="money">
-                        $10,000.00
-                    </td>
-
-                </tr>
-
-
-                <tr
-                    data-client-id="2"
-                    data-recoveries="10000"
-                    data-costs="2500"
-                    data-commission-rate="25"
-                >
-
-                    <td>
-
-                        <input
-                            class="client-checkbox"
-                            type="checkbox"
-                            aria-label="Select Client 2"
-                        >
-
-                    </td>
-
-
-                    <td>
-                        Client 2
-                    </td>
-
-
-                    <td class="money">
-                        $10,000.00
-                    </td>
-
-
-                    <td
-                        class="money cost-value"
-                        data-cost="2500"
-                        data-recovery="10000"
-                    >
-                        $2,500.00
-                    </td>
-
-
-                    <td class="money">
-                        $2,500.00
-                    </td>
-
-
-                    <td class="money">
-                        $5,000.00
-                    </td>
-
-                </tr>
-
-
-                <tr
-                    data-client-id="3"
-                    data-recoveries="8500"
-                    data-costs="900"
-                    data-commission-rate="20"
-                >
-
-                    <td>
-
-                        <input
-                            class="client-checkbox"
-                            type="checkbox"
-                            aria-label="Select Client 3"
-                        >
-
-                    </td>
-
-
-                    <td>
-                        Client 3
-                    </td>
-
-
-                    <td class="money">
-                        $8,500.00
-                    </td>
-
-
-                    <td
-                        class="money cost-value"
-                        data-cost="900"
-                        data-recovery="8500"
-                    >
-                        $900.00
-                    </td>
-
-
-                    <td class="money">
-                        $1,700.00
-                    </td>
-
-
-                    <td class="money">
-                        $5,900.00
-                    </td>
-
-                </tr>
-
-
-                <tr
-                    data-client-id="4"
-                    data-recoveries="5000"
-                    data-costs="1500"
-                    data-commission-rate=""
-                >
-
-                    <td>
-
-                        <input
-                            class="client-checkbox"
-                            type="checkbox"
-                            aria-label="Select Client 4"
-                        >
-
-                    </td>
-
-
-                    <td>
-                        Client 4
-                    </td>
-
-
-                    <td class="money">
-                        $5,000.00
-                    </td>
-
-
-                    <td
-                        class="money cost-value"
-                        data-cost="1500"
-                        data-recovery="5000"
-                    >
-                        $1,500.00
-                    </td>
-
-
-                    <td class="missing-value">
-                        Not Set
-                    </td>
-
-
-                    <td>
-                        —
-                    </td>
-
-                </tr>
-
             </tbody>
-
         </table>
-
-
         <!-- =========================
              TABLE FOOTER
              ========================= -->
-
         <div class="table-footer">
-
             <div class="footer-left">
-
                 <button
                     id="rolloverAllBtn"
                     type="button"
@@ -396,35 +136,25 @@
                 >
                     Roll Over All
                 </button>
-
             </div>
-
-
             <div class="pagination">
-
                 <button
                     id="previousPageBtn"
                     type="button"
                 >
                     &lt;
                 </button>
-
                 <span id="pageIndicator">
                     1 of 1
                 </span>
-
                 <button
                     id="nextPageBtn"
                     type="button"
                 >
                     &gt;
                 </button>
-
             </div>
-
-
             <div class="footer-right">
-
                 <button
                     id="generateAllReportsBtn"
                     type="button"
@@ -432,15 +162,25 @@
                 >
                     Generate All Reports
                 </button>
-
             </div>
-
         </div>
-
     </section>
-
 </main>
+<script>
+    // Keep the dashboard reporting period aligned with the current month.
+    const reportingPeriodText = document.getElementById("reportingPeriodText");
+    if (reportingPeriodText) {
+        const currentMonth = new Intl.DateTimeFormat("en-US", {
+            month: "long",
+            year: "numeric"
+        }).format(new Date());
+        reportingPeriodText.textContent = `Showing clients for:  ${currentMonth}`;
+    }
+</script>
+
+<footer class="site-footer">
+    <p>By Charmed Solutions</p>
+</footer>
 
 </body>
-
 </html>

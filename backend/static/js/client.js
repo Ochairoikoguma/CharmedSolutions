@@ -23,10 +23,10 @@ function renderList() {
 }
 function renderForm() {
   const c = isDraft ? null : current();
-  dom.id.value = isDraft ? 'Assigned on save' : c ? c.id : '';
+  dom.id.value = isDraft ? 'Assigned when Saved' : c ? c.id : '';
   dom.name.value = c ? c.name : '';
   dom.rate.value = c && c.rate != null ? c.rate : '';
-  dom.date.value = isDraft ? mdy(iso(new Date())) : c ? mdy(c.created) : '';
+  dom.date.value = c ? mdy(c.created) : mdy(iso(new Date()));
   dom.form.querySelector('button[type="submit"]').textContent =
     isDraft ? 'Create Client' : 'Save Changes';
   // Keep deletion disabled until it is connected to Django.

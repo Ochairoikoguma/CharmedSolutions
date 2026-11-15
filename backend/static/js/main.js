@@ -4,6 +4,8 @@ const FIRM = { name: 'Your Law Firm, PLLC', addr: '123 Main Street, Houston, TX 
 const PAGE_SIZE = 10;
 const KEY = 'remittance_db';
 
+// TODO(example/demo code): This browser-local store and the related
+// calculation/PDF helpers are legacy demo logic; dashboard data comes from Django.
 /* ---------- Data layer ---------- */
 let S = { clients: [], accounts: [], payments: [], costs: [], reports: [], nextId: 100 };
 const id = () => ++S.nextId;
@@ -212,22 +214,6 @@ function initHome() {
   renderHome();
 }
 
-/* ---------- Sample data (delete this block when wired to MySQL) ---------- */
-function seed() {
-  const m = PERIOD.slice(0, 7), d = n => `${m}-${pad(n)}`;
-  [['Northgate Medical Group', 25, [[900000, 3], [400000, 9]], [[150000, 2], [180000, 5], [120000, 11]]],
-   ['Bayou City Credit Union', 20, [[1250000, 4]], [[80000, 3], [60000, 8]]],
-   ['Summit Property Mgmt', null, [[300000, 6]], [[90000, 4]]],
-   ['Lone Star Utilities', 30, [], [[25000, 2]]]].forEach(([name, rate, p, k], i) => {
-    const c = { id: i + 1, name, rate, created: iso(new Date()) }; S.clients.push(c);
-    S.accounts.push({ id: i + 1, clientId: c.id, number: `AC-${1000 + i}` });
-    p.forEach(([a, day]) => S.payments.push({ id: id(), clientId: c.id, acct: `AC-${1000 + i}`, date: d(day), amount: a, debtor: 'Debtor ' + day }));
-    k.forEach(([a, day]) => S.costs.push({ id: id(), clientId: c.id, acct: `AC-${1000 + i}`, date: d(day), amount: a, billed: false, desc: 'Court filing fee', due: m + '-01', debtor: 'Debtor ' + day }));
-  });
-}
-
-
-
 async function initDatabaseDashboard() {
   // October 2026 is our imported reporting period.
   const year = 2026;
@@ -238,9 +224,7 @@ async function initDatabaseDashboard() {
   const nextBtn = $('#nextPageBtn');
   const pageIndicator = $('#pageIndicator');
 
-  $('#reportingPeriodText').textContent =
-    'Showing October 2026 - Financial totals not finalized';
-
+ 
   // These actions must wait until their Django
   // database implementations are connected.
   [
@@ -399,6 +383,7 @@ async function initDatabaseDashboard() {
       }
 
       const confirmed = confirm(
+        // TODO(example value): Use the selected month rather than a fixed month.
         `Generate the October 2026 remittance report for ${client.name}?\n\n` +
         `This will permanently save the PDF, mark applicable costs as billed, ` +
         `and roll deferred costs into the following month.`
@@ -482,4 +467,3 @@ async function initDatabaseDashboard() {
 }
 
 if ($('#clientTableBody')) initDatabaseDashboard();   // home.html loads this file with defer, so the table already exists
-

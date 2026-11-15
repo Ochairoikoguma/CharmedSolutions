@@ -17,3 +17,8 @@ backend/media/
 backend/exports/
 backups/
 backend/staticfiles/
+
+# Node.js dependencies and package manifests
+node_modules/
+package.json
+package-lock.json

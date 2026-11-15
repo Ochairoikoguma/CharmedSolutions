@@ -4,128 +4,70 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-
     <title>Regent & Associates - Clients</title>
-
+    <link
+        rel="icon"
+        type="image/jpeg"
+        href="{% static 'img/ra-logo.jpg' %}"
+    >
+    <meta name="theme-color" content="#001F3F">
     <link
         rel="stylesheet"
         href="{% static 'css/styles.css' %}"
     >
-
-    
     <script src="{% static 'js/main.js' %}" defer></script>
     <script src="{% static 'js/client.js' %}" defer></script>
-    
-
 </head>
 
-
 <body>
-
 <header class="top-header">
-
     <div class="brand">
-        Regent &amp; Associates
+        <img
+            src="{% static 'img/ra-logo.jpeg' %}"
+            alt=""
+        >
+        <span>Regent &amp; Associates</span>
     </div>
-
     <nav class="top-nav">
-
         <a href="/">
             Dashboard
         </a>
-
         <a
             href="/client/"
             class="active-nav"
         >
             Clients
         </a>
-
-        <a href="#">
-            Reports
-        </a>
-
     </nav>
-
 </header>
-
 
 <div class="green-line"></div>
 
-
 <main class="client-page-container">
-
-
     <div
         id="clientMessage"
         class="message hidden"
     ></div>
-
-
     <section class="three-column-layout">
-
-
         <!-- =========================
              COLUMN 1
              CLIENT LIST
              ========================= -->
-
         <div class="client-column">
 
             <div class="column-header">
                 Client List
             </div>
-
-
             <div
                 id="clientList"
                 class="client-list"
             >
-
-                <button
-                    type="button"
-                    class="client-name active"
-                    data-client="1"
-                >
-                    Alpha Funding
-                </button>
-
-
-                <button
-                    type="button"
-                    class="client-name"
-                    data-client="2"
-                >
-                    Capital Advance
-                </button>
-
-
-                <button
-                    type="button"
-                    class="client-name"
-                    data-client="3"
-                >
-                    Merchant Funding
-                </button>
-
-
-                <button
-                    type="button"
-                    class="client-name"
-                    data-client="4"
-                >
-                    Premier Capital
-                </button>
-
             </div>
-
 
             <div class="column-footer">
 
@@ -136,62 +78,42 @@
                 >
                     Create New Client
                 </button>
-
             </div>
-
         </div>
-
-
-
         <!-- =========================
              COLUMN 2
              CLIENT DETAILS
              ========================= -->
-
         <div class="client-column">
-
             <div class="column-header">
                 Client Details
             </div>
-
-
             <form
-            
                 id="clientForm"
                 class="client-details-form"
             >
                 {% csrf_token %}
-
-
                 <label for="clientId">
                     Client ID
                 </label>
-
                 <input
                     id="clientId"
                     type="text"
                     value="1"
                     readonly
                 >
-
-
                 <label for="clientName">
                     Client Name
                 </label>
-
                 <input
                     id="clientName"
                     type="text"
-                    value="Alpha Funding"
+                    value=""
                 >
-
-
                 <label for="commissionRate">
                     Default Commission Rate
                 </label>
-
                 <div class="percent-input">
-
                     <input
                         id="commissionRate"
                         type="number"
@@ -199,115 +121,53 @@
                         max="100"
                         value="20"
                     >
-
                     <span>%</span>
-
                 </div>
-
-
                 <label for="dateAdded">
                     Date Added
                 </label>
-
                 <input
                     id="dateAdded"
                     type="text"
-                    value="10/01/2026"
+                    value=""
                     readonly
                 >
-
-
-                <div class="details-actions">
-
-                    <button
-                        type="submit"
-                        class="app-button"
-                    >
-                        Save Changes
-                    </button>
-
-
-                    <button
-                        id="deleteClientBtn"
-                        type="button"
-                        class="delete-button"
-                    >
-                        Delete Client
-                    </button>
-
-                </div>
-
+                <button
+                    type="submit"
+                    class="app-button"
+                >
+                    Save Changes
+                </button>
+                <button
+                    id="deleteClientBtn"
+                    type="button"
+                    class="delete-button"
+                >
+                    Delete Client
+                </button>
             </form>
-
         </div>
-
-
-
         <!-- =========================
              COLUMN 3
              REPORT HISTORY
              ========================= -->
-
         <div class="client-column">
-
             <div class="column-header">
                 Report History
             </div>
-
-
             <div
                 id="reportHistory"
                 class="report-history"
             >
-
-
-                <a
-                    href="/reports/saved/1/download/"
-                    target="_blank"
-                    class="report-history-item"
-                >
-
-                    <span>
-                        October, 2026
-                    </span>
-
-                </a>
-
-
-                <a
-                    href="/reports/saved/2/download/"
-                    target="_blank"
-                    class="report-history-item"
-                >
-
-                    <span>
-                        September, 2026
-                    </span>
-
-                </a>
-
-
-                <a
-                    href="/reports/saved/3/download/"
-                    target="_blank"
-                    class="report-history-item"
-                >
-
-                    <span>
-                        August, 2026
-                    </span>
-
-                </a>
-
+                <p class="report-history-empty">No saved reports yet.</p>
             </div>
-
         </div>
-
-
     </section>
-
 </main>
 
-</body>
+<footer class="site-footer">
+    <p>By Charmed Solutions</p>
+</footer>
 
+</body>
 </html>
