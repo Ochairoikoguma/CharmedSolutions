@@ -16,18 +16,18 @@ def calculate_cost_ceiling(total_recoveries, max_percentage=20):
 
 
 def calculate_billable_costs(costs, ceiling):
-    """Select whole costs oldest first without exceeding the ceiling."""
+    """Select whole costs oldest first, continuing past costs that do not fit."""
 
+    # Process unbilled costs by date, then numeric cost ID.
     costs = sorted(
         [cost for cost in costs if not cost["Billed"]],
-        key=lambda cost: (cost["CostDate"], str(cost["CostID"]))
+        key=lambda cost: (cost["CostDate"], int(cost["CostID"]))
     )
 
     billed_costs = []
     rollover_costs = []
     total_billed = Decimal("0.00")
     ceiling = Decimal(str(ceiling))
-    limit_reached = False
 
     for cost in costs:
         amount = Decimal(str(cost["CostAmount"]))
@@ -35,18 +35,19 @@ def calculate_billable_costs(costs, ceiling):
         if amount < 0:
             raise ValueError("Cost amounts cannot be negative.")
 
-        if not limit_reached and total_billed + amount <= ceiling:
+        # Include the entire cost only when it fits.
+        if total_billed + amount <= ceiling:
             billed_costs.append(cost)
             total_billed += amount
         else:
-            limit_reached = True
+            # Defer this cost, but keep checking later costs.
             rollover_costs.append(cost)
 
     return {
         "ceiling": ceiling,
         "total_billed": total_billed,
         "billed_costs": billed_costs,
-        "rollover_costs": rollover_costs
+        "rollover_costs": rollover_costs,
     }
 
     
