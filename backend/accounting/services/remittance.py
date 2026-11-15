@@ -79,7 +79,15 @@ def prepare_remittance_data(client_id, year, month):
     applied_costs = proposal["total_billed"]
 
 
-    totals = calculate_monthly_remittance(gross_recoveries=gross_recoveries,applied_costs=applied_costs,commission_rate=client.commission_rate,)
+        # Sum commissions rounded separately for each payment.
+    totals = calculate_monthly_remittance(
+        gross_recoveries=gross_recoveries,
+        applied_costs=applied_costs,
+        commission_rate=client.commission_rate,
+        payment_amounts=[
+            payment.payment_amount for payment in payments
+        ],
+    )
 
     return {
     "client": client,

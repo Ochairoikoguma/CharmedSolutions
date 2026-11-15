@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 
 def calculate_cost_ceiling(total_recoveries, max_percentage=20):
     """Calculate the maximum costs allowed for the month."""
@@ -12,7 +12,10 @@ def calculate_cost_ceiling(total_recoveries, max_percentage=20):
     if not 0 <= percentage <= 20:
         raise ValueError("Cost percentage must be between 0 and 20.")
 
-    return recoveries * percentage / Decimal("100")
+    # Round the cost ceiling down to whole cents
+    return (
+        recoveries * percentage / Decimal("100")
+    ).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
 
 
 def calculate_billable_costs(costs, ceiling):
@@ -54,30 +57,52 @@ def calculate_billable_costs(costs, ceiling):
 def calculate_monthly_remittance(
     gross_recoveries,
     applied_costs,
-    commission_rate
+    commission_rate,
+    payment_amounts=None,
 ):
-    """
-    Calculate a client's monthly remittance.
-
-    commission_rate is a percentage:
-    20 means 20%.
-    """
+    """Calculate remittance using commissions rounded per payment."""
 
     gross = Decimal(str(gross_recoveries))
     costs = Decimal(str(applied_costs))
     rate = Decimal(str(commission_rate))
 
-    if gross < 0:
-        raise ValueError("Gross recoveries cannot be negative.")
+    if not gross.is_finite() or gross < 0:
+        raise ValueError("Gross recoveries must be a nonnegative amount.")
 
-    if costs < 0:
-        raise ValueError("Applied costs cannot be negative.")
+    if not costs.is_finite() or costs < 0:
+        raise ValueError("Applied costs must be a nonnegative amount.")
 
-    if not 0 <= rate <= 100:
+    if not rate.is_finite() or not 0 <= rate <= 100:
         raise ValueError("Commission rate must be 0 to 100.")
 
+    # A single-payment calculation can use gross directly.
+    # Monthly callers must supply the individual payment amounts.
+    amounts = (
+        [gross]
+        if payment_amounts is None
+        else [Decimal(str(amount)) for amount in payment_amounts]
+    )
+
+    if any(not amount.is_finite() or amount < 0 for amount in amounts):
+        raise ValueError("Payment amounts must be nonnegative.")
+
+    if sum(amounts, Decimal("0.00")) != gross:
+        raise ValueError("Payment amounts do not match gross recoveries.")
+
+    # Proposed rounding rule: round each payment's commission,
+    # then sum those rounded amounts for the monthly total.
+    commission = sum(
+        (
+            (amount * rate / Decimal("100")).quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP,
+            )
+            for amount in amounts
+        ),
+        Decimal("0.00"),
+    )
+
     net_recoveries = gross - costs
-    commission = gross * rate / Decimal("100")
     net_remittance = net_recoveries - commission
 
     return {
