@@ -327,17 +327,20 @@ def dashboard_data(request):
             status=400
         )
 
-    # Get monthly recoveries from MySQL.
-    payment_totals = {
-        row["account__client_id"]: row["total"]
-        for row in Payment.objects.filter(
-            payment_date__gte=period_start,
-            payment_date__lt=period_end
-        ).values("account__client_id").annotate(
-            total=Sum("payment_amount")
-        )
-    }
+        # Keep individual payment amounts for per-payment rounding.
+    payments_by_client = {}
 
+    payment_rows = Payment.objects.filter(
+        payment_date__gte=period_start,
+        payment_date__lt=period_end,
+    ).values("account__client_id", "payment_amount")
+
+    for row in payment_rows:
+        client_id = row["account__client_id"]
+        payments_by_client.setdefault(client_id, []).append(row["payment_amount"])
+
+    # Calculate each client's total monthly recoveries.
+    payment_totals = {client_id: sum(amounts, Decimal("0.00"))for client_id, amounts in payments_by_client.items()}
     # Get outstanding costs and group them by client.
     costs_by_client = {}
 
@@ -411,7 +414,10 @@ def dashboard_data(request):
             totals = calculate_monthly_remittance(
                 gross_recoveries=recoveries,
                 applied_costs=applied_costs,
-                commission_rate=client.commission_rate
+                commission_rate=client.commission_rate,
+                payment_amounts=payments_by_client.get(
+                    client.client_id, []
+                ),
             )
 
             commission = totals["commission"]
