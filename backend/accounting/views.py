@@ -419,6 +419,19 @@ def dashboard_data(request):
             "Billed": row["billed"],
         })
 
+    #Identify clients with an existing report for this month
+
+    
+    # Load saved financial snapshots for this reporting month.
+    saved_reports = {
+        report.client_id: report
+        for report in Remittance.objects.filter(
+            report_period=period_start
+        )
+    }
+
+    existing_report_ids = set(saved_reports)
+
     clients = []
 
     for client in Client.objects.order_by("client_name"):
@@ -460,6 +473,19 @@ def dashboard_data(request):
             commission = totals["commission"]
             net_remittance = totals["net_remittance"]
 
+        # Existing reports must display their saved financial totals,
+        # not recalculate from costs that are now marked billed.
+        saved_report = saved_reports.get(client.client_id)
+
+        if saved_report is not None:
+            recoveries = saved_report.gross_recoveries
+            applied_costs = saved_report.total_cost
+            commission = saved_report.total_commission
+            net_remittance = saved_report.net_remittance
+
+            # Deferred costs were not stored in the report snapshot.
+            deferred_costs = None
+
         clients.append({
             "id": client.client_id,
             "name": client.client_name,
@@ -468,11 +494,15 @@ def dashboard_data(request):
                 if client.commission_rate is not None
                 else None
             ),
+            "report_exists": client.client_id in existing_report_ids,
             "recoveries": str(recoveries),
             "pending_costs": str(pending_costs),
             "cost_ceiling": str(ceiling),
             "applied_costs": str(applied_costs),
-            "deferred_costs": str(deferred_costs),
+            "deferred_costs": (
+                str(deferred_costs)
+                if deferred_costs is not None else None
+            ),
             "commission": (
                 str(commission)
                 if commission is not None else None
