@@ -286,6 +286,10 @@ async function initDatabaseDashboard() {
 
     let currentPage = 0;
 
+    let selectedClientId = null;
+    const generateBtn = $('#generateAllReportsBtn');
+    generateBtn.textContent = 'Generate Selected Report';
+
     function renderDatabasePage() {
       const totalPages = Math.max(
         1,
@@ -302,7 +306,16 @@ async function initDatabaseDashboard() {
 
         return `
           <tr data-client-id="${c.id}">
-            <td class="checkbox-column">—</td>
+            <td class="checkbox-column">
+              <input
+                type="checkbox"
+                class="client-checkbox"
+                data-id="${c.id}"
+                aria-label="Select ${esc(c.name)}"
+                ${selectedClientId === c.id ? 'checked' : ''}
+                ${c.report_exists ? 'disabled' : ''}
+              >
+            </td>
 
             <td>
               <a href="/client/?id=${c.id}">
@@ -345,6 +358,13 @@ async function initDatabaseDashboard() {
 
       previousBtn.disabled = currentPage === 0;
       nextBtn.disabled = currentPage >= totalPages - 1;
+      const selectedClient = clients.find(
+        c => c.id === selectedClientId
+      );
+
+      generateBtn.disabled = !selectedClient ||
+        selectedClient.rate === null ||
+        selectedClient.report_exists;
     }
 
     previousBtn.addEventListener('click', () => {
@@ -355,6 +375,100 @@ async function initDatabaseDashboard() {
     nextBtn.addEventListener('click', () => {
       currentPage++;
       renderDatabasePage();
+    });
+
+    tbody.addEventListener('change', event => {
+      const checkbox = event.target.closest('.client-checkbox');
+
+      if (!checkbox) return;
+
+      // Allow only one client to be selected at a time.
+      selectedClientId = checkbox.checked
+        ? Number(checkbox.dataset.id)
+        : null;
+
+      renderDatabasePage();
+    });
+
+    generateBtn.addEventListener('click', async () => {
+      const client = clients.find(c => c.id === selectedClientId);
+
+      if (!client || client.rate === null || client.report_exists) {
+        toast('Select a client with a commission rate and no existing report.', 'error');
+        return;
+      }
+
+      const confirmed = confirm(
+        `Generate the October 2026 remittance report for ${client.name}?\n\n` +
+        `This will permanently save the PDF, mark applicable costs as billed, ` +
+        `and roll deferred costs into the following month.`
+      );
+
+      if (!confirmed) return;
+
+      const csrfToken = document.querySelector(
+        '#dashboardCsrf input[name="csrfmiddlewaretoken"]'
+      )?.value;
+
+      if (!csrfToken) {
+        toast('Security token missing. Refresh the page.', 'error');
+        return;
+      }
+
+      generateBtn.disabled = true;
+
+      try {
+        const response = await fetch(
+          `/reports/clients/${client.id}/download/`,
+          {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': csrfToken
+            },
+            body: new URLSearchParams({
+              year: String(year),
+              month: String(month)
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const pdfBlob = await response.blob();
+        const downloadUrl = URL.createObjectURL(pdfBlob);
+
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `remittance_${client.id}_${year}_${String(month).padStart(2, '0')}.pdf`;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 30000);
+
+        // Mark this report as generated.
+        client.report_exists = true;
+
+        // Deferred costs have been processed.
+        // Do not display the old preview amount.
+        client.deferred_costs = null;
+
+        // Clear the selection and disable further generation.
+        selectedClientId = null;
+
+        renderDatabasePage();
+
+        toast('Report saved and downloaded successfully.', 'success');
+
+      } catch (error) {
+        toast(error.message || 'Report generation failed.', 'error');
+        renderDatabasePage();
+      }
     });
 
     renderDatabasePage();
