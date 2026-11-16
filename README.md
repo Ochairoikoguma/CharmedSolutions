@@ -36,7 +36,7 @@ Remove-Variable credential
 .\.venv\Scripts\python.exe backend/manage.py runserver
 ```
 
-The database check must print `mysql` and `remittance`. Open http://127.0.0.1:8000/ and keep the terminal running. Press Ctrl+C to stop. Restart the server after changing database environment variables. The password remains available only to this terminal session and its child processes; closing the terminal clears that session.
+
 
 ## macOS (Bash)
 
@@ -67,7 +67,6 @@ export MYSQL_PASSWORD
 ./.venv/bin/python backend/manage.py runserver
 ```
 
-Confirm `mysql` and `remittance`, then open http://127.0.0.1:8000/. Press Control+C to stop.
 
 ## Database setup and updates
 
@@ -156,6 +155,3 @@ Do not commit passwords, `.env`, `.venv`, real client exports, local databases, 
 - `backend/templates/`: HTML pages.
 - `backend/static/`: CSS and JavaScript.
 
-## Delivery status
-
-The main import-to-report workflow has been exercised on the team's MySQL database. Remaining handoff work includes reviewing the requirements matrix against the final code, documenting any gaps, confirming the target-machine database arrangement, and checking installation on a teammate's clean environment. The checked-in configuration is a development configuration; the team's current RDS connection requires network access and is not an offline local database deployment.
