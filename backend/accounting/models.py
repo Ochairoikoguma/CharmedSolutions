@@ -31,7 +31,7 @@ class CollectionAccount(models.Model):
     #ClientID column links account to its client
     client=models.ForeignKey(Client, on_delete=models.DO_NOTHING, db_column="ClientID", related_name="accounts",)
 
-    debtor_name= models.CharField(max_length=150, db_column="DebtorName")
+    debtor_name= models.CharField(max_length=250, db_column="DebtorName")
 
     class Meta:
         db_table="CollectionAccount"
