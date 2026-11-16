@@ -63,11 +63,11 @@ a { color: var(--green-deep); }
    HEADER
    ========================================= */
 .top-header {
-  height: 60px;
+  height: 80px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 50px;
+  padding: 0 60px;
   color: #fff;
   background: linear-gradient(100deg, #001F3F 0%, #06284F 55%, #1E488F 135%);
 }
@@ -195,7 +195,19 @@ a { color: var(--green-deep); }
   box-shadow: var(--shadow-md);
   overflow: auto;
 }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th:nth-child(1), .data-table td:nth-child(1) { width: 12%; }
+.data-table th:nth-child(2), .data-table td:nth-child(2) { width: 24%; }
+.data-table th:nth-child(3), .data-table td:nth-child(3) { width: 15%; }
+.data-table th:nth-child(4), .data-table td:nth-child(4) { width: 17%; }
+.data-table th:nth-child(5), .data-table td:nth-child(5) { width: 16%; }
+.data-table th:nth-child(6), .data-table td:nth-child(6) { width: 16%; }
 .data-table th {
   background: linear-gradient(180deg, var(--head-top), var(--head-bottom));
   color: var(--ink);
@@ -207,13 +219,18 @@ a { color: var(--green-deep); }
   white-space: nowrap;
 }
 .data-table td {
+  height: 64px;
   border-bottom: 1px solid var(--line-soft);
-  padding: 12px;
+  padding: 8px 12px;
   background: var(--surface);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:nth-child(even) td { background: #FAFBF6; }
 .data-table tbody tr:hover td { background: var(--hover); }
+.data-table tbody .empty-row td { background: var(--surface); }
 
 /* numeric columns: Recoveries, Costs, Commission, Net Remit */
 .data-table th:nth-child(n+3),
@@ -226,7 +243,7 @@ a { color: var(--green-deep); }
 }
 .data-table td:nth-child(2) a:hover { color: var(--green-deep); text-decoration: underline; }
 
-.checkbox-column { width: 96px; text-align: center !important; }
+.checkbox-column { text-align: center !important; }
 .rollover-header { display: flex; justify-content: center; }
 .client-checkbox { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
 .money { text-align: right; font-variant-numeric: tabular-nums; }
@@ -258,7 +275,13 @@ span.missing-value {
   border-top: 1px solid #C3CCC8;
 }
 .footer-left { justify-self: start; }
-.footer-right { justify-self: end; }
+.footer-right {
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .pagination {
   justify-self: center;
   display: flex;
@@ -304,16 +327,24 @@ span.missing-value {
    ========================================= */
 .client-page-container { width: 96%; max-width: 1350px; margin: 30px auto; }
 .three-column-layout {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  min-height: 560px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* fits the screen (header, spacing and footer subtracted), so only the lists scroll */
+    height: 560px;                                  /* fallback */
+    height: clamp(420px, calc(100dvh - 240px), 760px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
 }
-.client-column { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--line); }
+.client-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-right: 1px solid var(--line);
+}
 .client-column:last-child { border-right: none; }
 .column-header {
   padding: 13px 16px;
@@ -326,7 +357,15 @@ span.missing-value {
 /* =========================================
    CLIENT LIST
    ========================================= */
-.client-list { flex: 1; overflow-y: auto; background: var(--surface); }
+.client-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #A9B6C0 transparent;
+    background: var(--surface);
+}
 .client-name {
   display: block;
   width: 100%;
@@ -422,7 +461,14 @@ span.missing-value {
 /* =========================================
    REPORT HISTORY
    ========================================= */
-.report-history { overflow-y: auto; flex: 1; }
+.report-history {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #A9B6C0 transparent;
+}
 .report-history-empty { margin: 0; padding: 16px; color: var(--muted); font-size: 13px; }
 .report-history-item {
   display: flex;
@@ -450,6 +496,38 @@ span.missing-value {
 .report-history-item span { font-weight: 600; }
 
 /* =========================================
+   CLIENT PAGE: FILL THE WINDOW, SCROLL ONLY THE LISTS
+   Needs <body class="client-page">. The header, message and footer keep
+   their size and the three-column panel takes whatever height is left.
+   ========================================= */
+@media (min-width: 851px) {
+  body.client-page {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  body.client-page .top-header,
+  body.client-page .green-line,
+  body.client-page .site-footer { flex-shrink: 0; }
+  body.client-page .client-page-container {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-top: 24px;
+    margin-bottom: 0;
+  }
+  body.client-page .message { flex-shrink: 0; }
+  body.client-page .three-column-layout {
+    flex: 1 1 0;
+    min-height: 320px;
+    height: auto;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+/* =========================================
    FOCUS AND MOTION
    ========================================= */
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
@@ -466,12 +544,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
    RESPONSIVE
    ========================================= */
 @media (max-width: 850px) {
-  .three-column-layout { grid-template-columns: 1fr; }
-  .client-column { border-right: none; border-bottom: 1px solid var(--line); }
+  .three-column-layout { grid-template-columns: 1fr; height: auto; }
+  .client-column { min-height: 280px; border-right: none; border-bottom: 1px solid var(--line); }
+  .client-list { max-height: 320px; }
   .client-details-form { grid-template-columns: minmax(0, 1fr); }
   .client-details-form label { text-align: left; }
   .table-footer { grid-template-columns: 1fr; gap: 10px; }
-  .footer-left, .footer-right, .pagination { justify-self: center; }
+  .footer-left, .pagination { justify-self: center; }
+  .footer-right { justify-self: stretch; }
   .page-heading { flex-direction: column; align-items: flex-start; }
   .top-header { padding: 0 22px; }
   .top-nav a { padding: 0 12px; }

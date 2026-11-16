@@ -1,4 +1,3 @@
-
 if (typeof S === 'undefined') {
   const m = document.getElementById('clientMessage');
   if (m) { m.className = 'message message-error'; m.textContent = 'main.js must be loaded before client.js.'; }

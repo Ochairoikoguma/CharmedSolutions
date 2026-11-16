@@ -3,6 +3,10 @@
 const FIRM = { name: 'Your Law Firm, PLLC', addr: '123 Main Street, Houston, TX 77002' };
 const PAGE_SIZE = 10;
 const KEY = 'remittance_db';
+const emptyDashboardRows = count => Array.from(
+  { length: count },
+  () => '<tr class="empty-row" aria-hidden="true"><td></td><td></td><td></td><td></td><td></td><td></td></tr>'
+).join('');
 
 // TODO(example/demo code): This browser-local store and the related
 // calculation/PDF helpers are legacy demo logic; dashboard data comes from Django.
@@ -183,13 +187,15 @@ function renderHome() {
   const all = sortedRows(), pages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
   page = Math.min(page, pages - 1);
   const rows = all.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  $('#clientTableBody').innerHTML = rows.map(({ c, s }) => `<tr data-client-id="${c.id}" data-recoveries="${s.rec / 100}" data-costs="${s.cost / 100}" data-commission-rate="${c.rate ?? ''}">
+  const renderedRows = rows.map(({ c, s }) => `<tr data-client-id="${c.id}" data-recoveries="${s.rec / 100}" data-costs="${s.cost / 100}" data-commission-rate="${c.rate ?? ''}">
     <td class="checkbox-column"><input class="client-checkbox" type="checkbox" data-id="${c.id}" aria-label="Select ${esc(c.name)}" ${selected.has(c.id) ? 'checked' : ''}></td>
     <td><a href="/client/?id=${c.id}">${esc(c.name)}</a></td>
     <td class="money">${money(s.rec)}</td>
     <td class="money cost-value ${s.red ? 'cost-flagged' : ''}" data-cost="${s.cost / 100}" data-recovery="${s.rec / 100}">${money(s.cost)}</td>
     ${c.rate == null ? '<td class="missing-value">Not Set</td><td>&mdash;</td>' : `<td class="money">${money(s.comm)}</td><td class="money">${money(s.net)}</td>`}</tr>`).join('')
-    || '<tr><td colspan="6">No clients yet. Press Import Client Data to begin.</td></tr>';
+  $('#clientTableBody').innerHTML = renderedRows
+    ? renderedRows + emptyDashboardRows(PAGE_SIZE - rows.length)
+    : '<tr><td colspan="6">No clients yet. Press Import Client Data to begin.</td></tr>';
   $('#pageIndicator').textContent = `${page + 1} of ${pages}`;
   $('#previousPageBtn').disabled = page == 0;
   $('#nextPageBtn').disabled = page >= pages - 1;
@@ -273,7 +279,8 @@ async function initDatabaseDashboard() {
   function renderPage() {
     const totalPages = Math.max(1, Math.ceil(clients.length / PAGE_SIZE));
     currentPage = Math.min(currentPage, totalPages - 1);
-    tbody.innerHTML = pageRows().map(client => `
+    const rows = pageRows();
+    const renderedRows = rows.map(client => `
       <tr data-client-id="${client.id}">
         <td class="checkbox-column"><input type="checkbox" class="client-checkbox"
           data-id="${client.id}" aria-label="Select ${esc(client.name)}"
@@ -287,7 +294,10 @@ async function initDatabaseDashboard() {
           ${hasExcess(client) ? `<div style="font-size:0.8em;">Deferred: ${formatAmount(client.deferred_costs)}</div>` : ''}</td>
         <td class="money">${client.commission === null ? '<span class="missing-value">Not Set</span>' : formatAmount(client.commission)}</td>
         <td class="money">${client.net_remittance === null ? '—' : formatAmount(client.net_remittance)}</td>
-      </tr>`).join('') || '<tr><td colspan="6">No imported clients for display.</td></tr>';
+      </tr>`).join('');
+    tbody.innerHTML = renderedRows
+      ? renderedRows + emptyDashboardRows(PAGE_SIZE - rows.length)
+      : '<tr><td colspan="6">No imported clients for display.</td></tr>';
     $('#pageIndicator').textContent = `${currentPage + 1} of ${totalPages}`;
     previousBtn.disabled = busy || currentPage === 0;
     nextBtn.disabled = busy || currentPage >= totalPages - 1;
