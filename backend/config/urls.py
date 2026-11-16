@@ -23,7 +23,15 @@ from accounting.views import update_client
 from accounting.views import client_report_history
 from accounting.views import create_client
 from accounting.views import dashboard_data
+from accounting.import_views import import_csv, reporting_period
+
+from accounting.dashboard_action_views import rollover_dashboard, download_page_reports
+
 urlpatterns = [
+    path("api/dashboard/rollover/", rollover_dashboard, name="rollover_dashboard"),
+    path("reports/page/download/", download_page_reports, name="download_page_reports"),
+    path("api/import-csv/", import_csv, name="import_csv"),
+    path("api/reporting-period/", reporting_period, name="reporting_period"),
     path("admin/", admin.site.urls),
     path("", home, name="home"),
 

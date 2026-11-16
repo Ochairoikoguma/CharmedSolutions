@@ -51,6 +51,7 @@
 <div class="green-line"></div>
 
 <main class="page-container">
+    <form id="dashboardCsrf" hidden>{% csrf_token %}</form>
     <!-- =========================
          DASHBOARD HEADER
          ========================= -->
@@ -155,6 +156,7 @@
                 </button>
             </div>
             <div class="footer-right">
+                <button id="generateSelectedReportBtn" type="button" class="secondary-button">Generate Selected Report</button>
                 <button
                     id="generateAllReportsBtn"
                     type="button"
@@ -167,14 +169,14 @@
     </section>
 </main>
 <script>
-    // Keep the dashboard reporting period aligned with the current month.
+    // The dashboard script loads the latest imported reporting month.
     const reportingPeriodText = document.getElementById("reportingPeriodText");
     if (reportingPeriodText) {
         const currentMonth = new Intl.DateTimeFormat("en-US", {
             month: "long",
             year: "numeric"
         }).format(new Date());
-        reportingPeriodText.textContent = `Showing clients for:  ${currentMonth}`;
+        reportingPeriodText.textContent = "Loading reporting month...";
     }
 </script>
 

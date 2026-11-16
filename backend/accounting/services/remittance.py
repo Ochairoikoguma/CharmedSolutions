@@ -29,7 +29,7 @@ def prepare_remittance_data(client_id, year, month):
         .filter(account__client=client, payment_date__gte=period_start,payment_date__lt=period_end,).order_by("payment_date", "payment_id"))
 
     costs = list(Cost.objects.select_related("account")
-        .filter(account__client=client,billed=False,due_date__gte=period_start,due_date__lt=period_end,).order_by("cost_date", "cost_id"))
+        .filter(account__client=client,billed=False,due_date__lt=period_end,).order_by("cost_date", "cost_id"))
 
 
     # Calculate total monthly recoveries
@@ -217,7 +217,7 @@ def save_remittance_report(client_id, year, month):
     rollover_costs = data["rollover_costs"]
 
     for cost in rollover_costs:
-        cost.due_date = next_month(cost.due_date)
+        cost.due_date = next_month(report_period)
 
     if rollover_costs:
         Cost.objects.bulk_update(
@@ -228,3 +228,4 @@ def save_remittance_report(client_id, year, month):
     # Billing, rollover, and report creation are all
     # protected by the existing @transaction.atomic decorator.
     return report
+
