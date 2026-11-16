@@ -11,6 +11,8 @@ const dom = {
   create: $('#createClientBtn'), history: $('#reportHistory')
 };
 let curId = +new URLSearchParams(location.search).get('id') || null;   // /client/?id=3 opens that client
+let clientBusy = false;
+let clientReady = false;
 let isDraft = false;                                                    // true while filling in a new client
 const sortedClients = () => [...S.clients].sort((a, b) => a.name.localeCompare(b.name));
 const current = () => S.clients.find(x => x.id == curId);
@@ -29,8 +31,7 @@ function renderForm() {
   dom.date.value = c ? mdy(c.created) : mdy(iso(new Date()));
   dom.form.querySelector('button[type="submit"]').textContent =
     isDraft ? 'Create Client' : 'Save Changes';
-  // Keep deletion disabled until it is connected to Django.
-  dom.del.disabled = true;
+  setClientBusy(clientBusy);
 }
 async function renderHistory() {
   const c = isDraft ? null : current();
@@ -88,19 +89,39 @@ function renderClients() {
   renderList(); renderForm(); renderHistory();
 }
 
+// Keep edits, selection, creation and deletion from overlapping.
+function setClientBusy(value) {
+  clientBusy = value;
+  dom.del.disabled = value || !clientReady || isDraft || !current();
+  dom.create.disabled = value || !clientReady;
+  dom.form.querySelector('button[type="submit"]').disabled =
+    value || !clientReady || (!isDraft && !current());
+  dom.name.readOnly = value || !clientReady;
+  dom.rate.readOnly = value || !clientReady;
+}
+
+async function clientResponse(response) {
+  const data = await response.json().catch(() => ({ error: 'The server returned an unexpected response. Check the server terminal.' }));
+  if (!response.ok) throw new Error(data.error || 'Client request failed.');
+  return data;
+}
+
 /* ---------- Events ---------- */
 dom.rate.step = '0.01';                                                 // allow rates like 12.5
 
 dom.list.addEventListener('click', e => {
+  if (clientBusy || !clientReady) return;
   const b = e.target.closest('.client-name'); if (!b) return;
   isDraft = false; curId = +b.dataset.client; renderClients();
 });
 dom.create.addEventListener('click', () => {
+  if (clientBusy || !clientReady) return;
   isDraft = true; curId = null; renderClients(); dom.name.focus();
 });
 
 dom.form.addEventListener('submit', async e => {
   e.preventDefault();
+  if (clientBusy || !clientReady) return;
 
   const creating = isDraft;
   const c = creating ? null : current();
@@ -128,7 +149,7 @@ dom.form.addEventListener('submit', async e => {
   }
 
   const saveButton = dom.form.querySelector('button[type="submit"]');
-  saveButton.disabled = true;
+  setClientBusy(true);
 
   try {
     const url = creating
@@ -182,25 +203,54 @@ dom.form.addEventListener('submit', async e => {
   } catch (error) {
     toast(error.message, 'error');
   } finally {
-    saveButton.disabled = false;
+    setClientBusy(false);
   }
 });
 
-dom.del.addEventListener('click', () => {
-  const c = current(); if (!c) return;
-  if (!confirm(`Confirm Client Delete\n\nDelete "${c.name}" along with all of their accounts and transactions? This cannot be undone.`)) return;
-  S.clients = S.clients.filter(x => x.id != c.id);
-  ['accounts', 'payments', 'costs', 'reports'].forEach(k => S[k] = S[k].filter(x => x.clientId != c.id));
-  curId = null; save(); renderClients(); toast('Client deleted.');
+dom.del.addEventListener('click', async () => {
+  const c = current();
+  if (!c || isDraft || clientBusy || !clientReady) return;
+  setClientBusy(true);
+  try {
+    const preview = await clientResponse(await fetch(`/api/clients/${c.id}/delete-preview/`, {
+      cache: 'no-store', credentials: 'same-origin'
+    }));
+    const counts = preview.counts;
+    const approved = confirm(
+      `Permanently delete "${preview.name}"?\n\n` +
+      `This deletes ${counts.accounts} accounts, ${counts.payments} payments, ` +
+      `${counts.costs} costs, and ${counts.reports} saved PDF reports.\n\n` +
+      'Import history is retained. This cannot be undone.'
+    );
+    if (!approved) return;
+    const token = dom.form.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (!token) throw new Error('Security token missing. Refresh the page.');
+    await clientResponse(await fetch(`/api/clients/${c.id}/delete/`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+      body: JSON.stringify({ confirmation: preview.confirmation })
+    }));
+    // Refresh from MySQL instead of changing the old browser-only demo store.
+    curId = null;
+    isDraft = false;
+    const loaded = await loadDatabaseClients();
+    if (loaded) toast('Client and associated accounting records deleted.');
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    setClientBusy(false);
+  }
 });
 
 async function loadDatabaseClients() {
-  // Disable editing until these buttons are connected to Django.
+  // Disable editing while the database client list loads.
+  clientReady = false;
+  setClientBusy(true);
   dom.form.querySelector('button[type="submit"]').disabled = true;
   dom.create.disabled = true;
   dom.del.disabled = true;
-  dom.name.readOnly = false;
-  dom.rate.readOnly = false;
+  dom.name.readOnly = true;
+  dom.rate.readOnly = true;
   dom.rate.max = '99.99';
 
   dom.list.textContent = "Loading clients...";
@@ -232,17 +282,16 @@ async function loadDatabaseClients() {
     };
 
     isDraft = false;
+    clientReady = true;
     renderClients();
-
-    // Client selection calls renderForm again, so keep Delete disabled.
-    dom.del.disabled = true;
-    dom.form.querySelector('button[type="submit"]').disabled = false;
-    dom.create.disabled = false;
-    toast("Database clients loaded. Editing and history are not connected yet.", "info");
+    return true;
     
   } catch (error) {
     dom.list.textContent = "Unable to load clients.";
     toast(error.message, "error");
+    return false;
+  } finally {
+    setClientBusy(false);
   }
 }
 

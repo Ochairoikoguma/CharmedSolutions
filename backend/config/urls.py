@@ -27,7 +27,11 @@ from accounting.import_views import import_csv, reporting_period
 
 from accounting.dashboard_action_views import rollover_dashboard, download_page_reports
 
+from accounting.client_delete_views import client_delete_preview, delete_client
+
 urlpatterns = [
+    path("api/clients/<int:client_id>/delete-preview/", client_delete_preview, name="client_delete_preview"),
+    path("api/clients/<int:client_id>/delete/", delete_client, name="delete_client"),
     path("api/dashboard/rollover/", rollover_dashboard, name="rollover_dashboard"),
     path("reports/page/download/", download_page_reports, name="download_page_reports"),
     path("api/import-csv/", import_csv, name="import_csv"),
@@ -56,3 +60,4 @@ urlpatterns = [
 
     path("api/dashboard/",dashboard_data,name="dashboard_data"),
 ]
+
