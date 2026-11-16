@@ -215,255 +215,227 @@ function initHome() {
 }
 
 async function initDatabaseDashboard() {
-  // October 2026 is our imported reporting period.
-  const year = 2026;
-  const month = 10;
-
+  let year = null, month = null, clients = [], currentPage = 0, busy = false;
+  const selectedIds = new Set();
   const tbody = $('#clientTableBody');
   const previousBtn = $('#previousPageBtn');
   const nextBtn = $('#nextPageBtn');
-  const pageIndicator = $('#pageIndicator');
+  const importBtn = $('#importClientDataBtn');
+  const csvInput = $('#csvFileInput');
+  const rollSelectedBtn = $('#rolloverSelectedBtn');
+  const rollAllBtn = $('#rolloverAllBtn');
+  const generateBtn = $('#generateAllReportsBtn');
+  const singleBtn = $('#generateSelectedReportBtn');
+  $('#clientTable thead th:nth-child(4)').textContent = 'Applied Costs';
+  generateBtn.textContent = 'Generate All Reports (This Page)';
+  const formatAmount = value => money(Math.round(Number(value) * 100));
+  const hasExcess = client => !client.report_exists && Number(client.deferred_costs) > 0;
+  const pageRows = () => clients.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const periodLabel = () => new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
- 
-  // These actions must wait until their Django
-  // database implementations are connected.
-  [
-    'importClientDataBtn',
-    'rolloverSelectedBtn',
-    'rolloverAllBtn',
-    'generateAllReportsBtn'
-  ].forEach(id => {
-    const button = document.getElementById(id);
-    if (button) button.disabled = true;
+  function showMessage(message, error = false) {
+    clearTimeout(toast.t);
+    const box = $('#messageBox');
+    box.textContent = message;
+    box.className = 'message message-' + (error ? 'error' : 'success');
+  }
+
+  function csrfToken() {
+    const token = document.querySelector('#dashboardCsrf input[name="csrfmiddlewaretoken"]')?.value;
+    if (!token) throw new Error('Security token missing. Refresh the page.');
+    return token;
+  }
+
+  async function checkedFetch(url, options = {}) {
+    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', ...options });
+    if (!response.ok) {
+      const type = response.headers.get('content-type') || '';
+      let message = `Request failed (${response.status}). Check the server terminal.`;
+      if (type.includes('application/json')) {
+        const result = await response.json();
+        message = result.error || message;
+      } else if (type.includes('text/plain')) {
+        message = await response.text();
+      }
+      throw new Error(message);
+    }
+    return response;
+  }
+
+  function postJSON(url, data) {
+    return checkedFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify(data)
+    });
+  }
+
+  function renderPage() {
+    const totalPages = Math.max(1, Math.ceil(clients.length / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages - 1);
+    tbody.innerHTML = pageRows().map(client => `
+      <tr data-client-id="${client.id}">
+        <td class="checkbox-column"><input type="checkbox" class="client-checkbox"
+          data-id="${client.id}" aria-label="Select ${esc(client.name)}"
+          ${selectedIds.has(client.id) ? 'checked' : ''}
+          ${busy || client.report_exists ? 'disabled' : ''}></td>
+        <td><a href="/client/?id=${client.id}">${esc(client.name)}</a>
+          ${client.report_exists ? '<div style="font-size:0.8em;">Report saved</div>' : ''}</td>
+        <td class="money">${formatAmount(client.recoveries)}</td>
+        <td class="money ${hasExcess(client) ? 'cost-flagged' : ''}">
+          ${formatAmount(client.applied_costs)}
+          ${hasExcess(client) ? `<div style="font-size:0.8em;">Deferred: ${formatAmount(client.deferred_costs)}</div>` : ''}</td>
+        <td class="money">${client.commission === null ? '<span class="missing-value">Not Set</span>' : formatAmount(client.commission)}</td>
+        <td class="money">${client.net_remittance === null ? '—' : formatAmount(client.net_remittance)}</td>
+      </tr>`).join('') || '<tr><td colspan="6">No imported clients for display.</td></tr>';
+    $('#pageIndicator').textContent = `${currentPage + 1} of ${totalPages}`;
+    previousBtn.disabled = busy || currentPage === 0;
+    nextBtn.disabled = busy || currentPage >= totalPages - 1;
+    importBtn.disabled = busy;
+    csvInput.disabled = busy;
+    rollSelectedBtn.disabled = busy || !clients.some(client => selectedIds.has(client.id) && hasExcess(client));
+    rollAllBtn.disabled = busy || !clients.some(hasExcess);
+    generateBtn.disabled = busy || !year || pageRows().length === 0;
+    const selected = clients.find(client => selectedIds.has(client.id));
+    singleBtn.disabled = busy || selectedIds.size !== 1 || !selected || selected.rate === null || selected.report_exists;
+  }
+
+  async function loadDashboard() {
+    const period = await (await checkedFetch('/api/reporting-period/')).json();
+    year = period.year;
+    month = period.month;
+    selectedIds.clear();
+    if (!year || !month) {
+      clients = [];
+      $('#reportingPeriodText').textContent = 'Import a CSV to start a reporting month.';
+    } else {
+      const data = await (await checkedFetch(`/api/dashboard/?year=${year}&month=${month}`)).json();
+      clients = data.clients.sort((a, b) => Number(b.recoveries) - Number(a.recoveries) || a.id - b.id);
+      $('#reportingPeriodText').textContent = `Showing clients for: ${periodLabel()}`;
+    }
+    renderPage();
+  }
+
+  async function runAction(action) {
+    if (busy) return;
+    busy = true;
+    renderPage();
+    try {
+      await action();
+    } catch (error) {
+      showMessage(error.message || 'Action failed. Check the server terminal before retrying.', true);
+    } finally {
+      busy = false;
+      renderPage();
+    }
+  }
+
+  async function download(response, filename) {
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  previousBtn.addEventListener('click', () => {
+    if (busy || currentPage === 0) return;
+    currentPage--;
+    selectedIds.clear();
+    renderPage();
+  });
+  nextBtn.addEventListener('click', () => {
+    if (busy || (currentPage + 1) * PAGE_SIZE >= clients.length) return;
+    currentPage++;
+    selectedIds.clear();
+    renderPage();
+  });
+  tbody.addEventListener('change', event => {
+    if (busy) return;
+    const checkbox = event.target.closest('.client-checkbox');
+    if (!checkbox) return;
+    const id = Number(checkbox.dataset.id);
+    if (checkbox.checked) selectedIds.add(id); else selectedIds.delete(id);
+    renderPage();
   });
 
-  // The cost amounts are pending, not yet applied.
-  $('#clientTable thead th:nth-child(4)').textContent =
-    'Applied Costs';
-
-  tbody.innerHTML =
-    '<tr><td colspan="6">Loading MySQL dashboard...</td></tr>';
-
-  previousBtn.disabled = true;
-  nextBtn.disabled = true;
-
-  try {
-    const response = await fetch(
-      `/api/dashboard/?year=${year}&month=${month}`,
-      { cache: 'no-store' }
-    );
-
-    if (!response.ok) {
-      throw new Error('Unable to load dashboard data.');
-    }
-
-    const data = await response.json();
-
-    const clients = data.clients.sort(
-      (a, b) => Number(b.recoveries) - Number(a.recoveries)
-    );
-
-    // Backend amounts are dollars. Existing money()
-    // expects cents.
-    const formatAmount = value =>
-      money(Math.round(Number(value) * 100));
-
-    let currentPage = 0;
-
-    let selectedClientId = null;
-    const generateBtn = $('#generateAllReportsBtn');
-    generateBtn.textContent = 'Generate Selected Report';
-
-    function renderDatabasePage() {
-      const totalPages = Math.max(
-        1,
-        Math.ceil(clients.length / PAGE_SIZE)
-      );
-
-      const start = currentPage * PAGE_SIZE;
-      const rows = clients.slice(start, start + PAGE_SIZE);
-
-      
-      tbody.innerHTML = rows.map(c => {
-        const deferredCosts = Number(c.deferred_costs);
-        const hasDeferred = deferredCosts > 0;
-
-        return `
-          <tr data-client-id="${c.id}">
-            <td class="checkbox-column">
-              <input
-                type="checkbox"
-                class="client-checkbox"
-                data-id="${c.id}"
-                aria-label="Select ${esc(c.name)}"
-                ${selectedClientId === c.id ? 'checked' : ''}
-                ${c.report_exists ? 'disabled' : ''}
-              >
-            </td>
-
-            <td>
-              <a href="/client/?id=${c.id}">
-                ${esc(c.name)}
-              </a>
-            </td>
-
-            <td class="money">
-              ${formatAmount(c.recoveries)}
-            </td>
-
-            <td class="money ${hasDeferred ? 'cost-flagged' : ''}">
-              ${formatAmount(c.applied_costs)}
-              ${hasDeferred
-                ? `<div style="font-size:0.8em;">
-                    Deferred: ${formatAmount(c.deferred_costs)}
-                  </div>`
-                : ''}
-            </td>
-
-            <td class="money">
-              ${c.commission === null
-                ? '<span class="missing-value">Not Set</span>'
-                : formatAmount(c.commission)}
-            </td>
-
-            <td class="money">
-              ${c.net_remittance === null
-                ? '—'
-                : formatAmount(c.net_remittance)}
-            </td>
-          </tr>
-        `;
-      }).join('') ||
-        '<tr><td colspan="6">No clients found.</td></tr>';
-
-
-      pageIndicator.textContent =
-        `${currentPage + 1} of ${totalPages}`;
-
-      previousBtn.disabled = currentPage === 0;
-      nextBtn.disabled = currentPage >= totalPages - 1;
-      const selectedClient = clients.find(
-        c => c.id === selectedClientId
-      );
-
-      generateBtn.disabled = !selectedClient ||
-        selectedClient.rate === null ||
-        selectedClient.report_exists;
-    }
-
-    previousBtn.addEventListener('click', () => {
-      currentPage--;
-      renderDatabasePage();
+  importBtn.addEventListener('click', () => { if (!busy) csvInput.click(); });
+  csvInput.addEventListener('change', async () => {
+    const file = csvInput.files[0];
+    if (!file || busy) return;
+    await runAction(async () => {
+      const form = new FormData();
+      form.append('file', file);
+      showMessage('Importing CSV...');
+      const result = await (await checkedFetch('/api/import-csv/', {
+        method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: form
+      })).json();
+      currentPage = 0;
+      await loadDashboard();
+      showMessage(`Imported ${result.payments} payments and ${result.costs} costs for ${periodLabel()}.`);
     });
+    csvInput.value = '';
+  });
 
-    nextBtn.addEventListener('click', () => {
-      currentPage++;
-      renderDatabasePage();
+  async function roll(mode) {
+    if (busy) return;
+    const ids = [...selectedIds];
+    const description = mode === 'all' ? 'all red-flagged clients across all pages' : 'the selected red-flagged clients';
+    if (!confirm(`Roll excess costs for ${description} into the month after ${periodLabel()}?\n\nCosts will remain unbilled until a report is generated.`)) return;
+    await runAction(async () => {
+      const result = await (await postJSON('/api/dashboard/rollover/', {
+        year, month, mode, client_ids: ids
+      })).json();
+      await loadDashboard();
+      showMessage(`Rolled ${result.costs_rolled} costs for ${result.clients_rolled} clients. Costs remain unbilled.`);
     });
-
-    tbody.addEventListener('change', event => {
-      const checkbox = event.target.closest('.client-checkbox');
-
-      if (!checkbox) return;
-
-      // Allow only one client to be selected at a time.
-      selectedClientId = checkbox.checked
-        ? Number(checkbox.dataset.id)
-        : null;
-
-      renderDatabasePage();
-    });
-
-    generateBtn.addEventListener('click', async () => {
-      const client = clients.find(c => c.id === selectedClientId);
-
-      if (!client || client.rate === null || client.report_exists) {
-        toast('Select a client with a commission rate and no existing report.', 'error');
-        return;
-      }
-
-      const confirmed = confirm(
-        // TODO(example value): Use the selected month rather than a fixed month.
-        `Generate the October 2026 remittance report for ${client.name}?\n\n` +
-        `This will permanently save the PDF, mark applicable costs as billed, ` +
-        `and roll deferred costs into the following month.`
-      );
-
-      if (!confirmed) return;
-
-      const csrfToken = document.querySelector(
-        '#dashboardCsrf input[name="csrfmiddlewaretoken"]'
-      )?.value;
-
-      if (!csrfToken) {
-        toast('Security token missing. Refresh the page.', 'error');
-        return;
-      }
-
-      generateBtn.disabled = true;
-
-      try {
-        const response = await fetch(
-          `/reports/clients/${client.id}/download/`,
-          {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'X-CSRFToken': csrfToken
-            },
-            body: new URLSearchParams({
-              year: String(year),
-              month: String(month)
-            })
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-
-        const pdfBlob = await response.blob();
-        const downloadUrl = URL.createObjectURL(pdfBlob);
-
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `remittance_${client.id}_${year}_${String(month).padStart(2, '0')}.pdf`;
-
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        setTimeout(() => URL.revokeObjectURL(downloadUrl), 30000);
-
-        // Mark this report as generated.
-        client.report_exists = true;
-
-        // Deferred costs have been processed.
-        // Do not display the old preview amount.
-        client.deferred_costs = null;
-
-        // Clear the selection and disable further generation.
-        selectedClientId = null;
-
-        renderDatabasePage();
-
-        toast('Report saved and downloaded successfully.', 'success');
-
-      } catch (error) {
-        toast(error.message || 'Report generation failed.', 'error');
-        renderDatabasePage();
-      }
-    });
-
-    renderDatabasePage();
-
-  } catch (error) {
-    tbody.innerHTML =
-      '<tr><td colspan="6">Unable to load dashboard data.</td></tr>';
-
-    toast(error.message, 'error');
   }
+  rollSelectedBtn.addEventListener('click', () => roll('selected'));
+  rollAllBtn.addEventListener('click', () => roll('all'));
+
+  singleBtn.addEventListener('click', async () => {
+    if (busy || selectedIds.size !== 1) return;
+    const client = clients.find(item => selectedIds.has(item.id));
+    if (!client || client.rate === null || client.report_exists) return;
+    if (!confirm(`Generate the ${periodLabel()} report for ${client.name}?\n\nThis saves the PDF, bills included costs, and rolls excess costs forward.`)) return;
+    await runAction(async () => {
+      const response = await checkedFetch(`/reports/clients/${client.id}/download/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken() },
+        body: new URLSearchParams({ year: String(year), month: String(month) })
+      });
+      await download(response, `remittance_${client.id}_${year}_${String(month).padStart(2, '0')}.pdf`);
+      await loadDashboard();
+      showMessage('Report saved and downloaded. You can reopen it from client history.');
+    });
+  });
+
+  generateBtn.addEventListener('click', async () => {
+    if (busy) return;
+    const rows = pageRows();
+    if (!rows.length) return;
+    const missing = rows.filter(client => !client.report_exists && client.rate === null);
+    if (missing.length) {
+      showMessage('Set commission rates first for: ' + missing.map(client => client.name).join(', '), true);
+      return;
+    }
+    if (!confirm(`Download ${rows.length} reports for ${periodLabel()} from this page?\n\nNew reports will be saved and included costs billed. Existing PDFs will be reused. The download is one ZIP containing separate PDFs.`)) return;
+    await runAction(async () => {
+      const response = await postJSON('/reports/page/download/', { year, month, client_ids: rows.map(client => client.id) });
+      await download(response, `remittance_reports_${year}_${String(month).padStart(2, '0')}.zip`);
+      await loadDashboard();
+      showMessage(`Downloaded ${rows.length} PDFs in a ZIP. Extract it into your reports folder.`);
+    });
+  });
+
+  busy = true;
+  renderPage();
+  try { await loadDashboard(); }
+  catch (error) { showMessage(error.message, true); }
+  finally { busy = false; renderPage(); }
 }
 
-if ($('#clientTableBody')) initDatabaseDashboard();   // home.html loads this file with defer, so the table already exists
+if ($('#clientTableBody')) initDatabaseDashboard();

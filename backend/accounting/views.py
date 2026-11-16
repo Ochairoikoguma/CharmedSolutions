@@ -346,7 +346,7 @@ def dashboard_data(request):
 
     cost_rows = Cost.objects.filter(
         billed=False,
-        due_date__gte=period_start,
+        # Include older outstanding costs, but never future costs.
         due_date__lt=period_end
     ).values(
         "account__client_id",
@@ -469,3 +469,4 @@ def dashboard_data(request):
         "preview": True,
         "clients": clients
     })
+
